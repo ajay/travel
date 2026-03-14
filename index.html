@@ -1,0 +1,2089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Atlas" />
+  <meta name="theme-color" content="#0a0f1e" />
+  <meta name="description" content="Track every country you visit, plan, or dream of exploring." />
+  <script>
+  (function(){
+    const m = {"name":"Atlas — World Travel Tracker","short_name":"Atlas","description":"Track every country you visit, plan, or dream of exploring.","start_url":"./","display":"standalone","background_color":"#0a0f1e","theme_color":"#0a0f1e","orientation":"portrait-primary","icons":[{"src":"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230a0f1e'/><text y='.9em' font-size='80'>🌍</text></svg>","sizes":"192x192","type":"image/svg+xml"},{"src":"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230a0f1e'/><text y='.9em' font-size='80'>🌍</text></svg>","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}]};
+    const blob = new Blob([JSON.stringify(m)],{type:'application/manifest+json'});
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = URL.createObjectURL(blob);
+    document.head.appendChild(link);
+  })();
+  </script>
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230a0f1e'/><text y='.9em' font-size='80'>🌍</text></svg>" />
+  <title>Atlas — My World Travel Map</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    :root {
+      --ocean:#0a0f1e; --surface:#111827; --panel:#1a2235; --border:#2a3a55;
+      --text:#e8eaf0; --text-muted:#8896b3;
+      --visited:#22c55e; --wishlist:#f59e0b; --planned:#3b82f6;
+      --hover:#4a90d9; --accent:#e8c97a;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none; }
+    html { background:#111827; height:100%; height:100dvh; }
+    body { font-family:'DM Sans',sans-serif; background:var(--ocean); color:var(--text); height:100vh; height:100dvh; overflow:hidden; display:flex; flex-direction:column; }
+
+    /* HEADER */
+    header { display:flex; align-items:center; justify-content:space-between; padding:12px 24px; padding-top:calc(12px + env(safe-area-inset-top)); background:rgba(17,24,39,.97); border-bottom:1px solid var(--border); z-index:100; flex-shrink:0; min-width:0; overflow:hidden; gap:8px; }
+    .logo { font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:700; color:var(--accent); letter-spacing:.04em; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+    .logo span { color:var(--text-muted); font-weight:400; font-size:.8rem; margin-left:8px; font-family:'DM Sans',sans-serif; }
+    .stats-bar { display:flex; gap:12px; flex-shrink:1; min-width:0; }
+    .stat { text-align:center; }
+    .stat-num { font-family:'Playfair Display',serif; font-size:1.3rem; font-weight:600; line-height:1; }
+    .stat-num.v{color:var(--visited)} .stat-num.p{color:var(--planned)} .stat-num.w{color:var(--wishlist)}
+    .stat-label { font-size:.62rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.08em; margin-top:2px; }
+    .header-right { display:flex; align-items:center; gap:8px; flex-shrink:0; min-width:0; }
+    .legend { display:flex; gap:8px; align-items:center; flex-shrink:1; min-width:0; }
+    .legend-item { display:flex; align-items:center; gap:5px; font-size:.73rem; color:var(--text-muted); }
+    .legend-dot { width:9px; height:9px; border-radius:50%; }
+    .auth-btn { display:flex; align-items:center; gap:8px; padding:7px 14px; background:var(--panel); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:.8rem; cursor:pointer; transition:all .2s; white-space:nowrap; }
+    .auth-btn:hover { background:var(--border); border-color:var(--accent); }
+    .auth-btn img { width:22px; height:22px; border-radius:50%; object-fit:cover; }
+    .stats-toggle-btn { display:flex; align-items:center; gap:6px; padding:7px 14px; background:var(--panel); border:1px solid var(--border); border-radius:8px; color:var(--text-muted); font-family:'DM Sans',sans-serif; font-size:.8rem; cursor:pointer; transition:all .2s; white-space:nowrap; }
+    .stats-toggle-btn:hover { color:var(--accent); border-color:var(--accent); }
+    .stats-toggle-btn.active { color:var(--accent); border-color:var(--accent); background:rgba(232,201,122,.08); }
+
+    /* MAP */
+    .map-container { flex:1; position:relative; overflow:hidden; min-height:0; }
+
+    #map-svg { width:100%; height:100%; cursor:grab; }
+    #map-svg:active { cursor:grabbing; }
+    .country { stroke:#1e2d45; stroke-width:.5px; fill:#1e3a5f; transition:fill .15s; cursor:pointer; }
+    .country:hover { fill:var(--hover); stroke:#6ab0f5; stroke-width:1px; }
+    .country.selected { fill:var(--hover); stroke:#6ab0f5; stroke-width:1px; }
+    .country.visited.selected { fill:#4ade80; stroke:#6ab0f5; stroke-width:1px; }
+    .country.planned.selected { fill:#60a5fa; stroke:#6ab0f5; stroke-width:1px; }
+    .country.wishlist.selected { fill:#fbbf24; stroke:#6ab0f5; stroke-width:1px; }
+    .country.visited { fill:var(--visited); } .country.visited:hover { fill:#4ade80; }
+    .country.planned { fill:var(--planned); } .country.planned:hover { fill:#60a5fa; }
+    .country.wishlist { fill:var(--wishlist); } .country.wishlist:hover { fill:#fbbf24; }
+
+    /* INFO PANEL */
+    .info-panel { position:absolute; top:16px; right:16px; width:290px; background:rgba(15,21,36,.98); border:1px solid var(--border); border-radius:14px; padding:20px; transform:translateX(320px); transition:transform .35s cubic-bezier(.34,1.2,.64,1); z-index:50; backdrop-filter:blur(12px); max-height:calc(100vh - 100px); overflow-y:auto; }
+    .info-panel.open { transform:translateX(0); }
+    .panel-close { position:absolute; top:12px; right:12px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem; padding:3px 7px; border-radius:4px; transition:color .2s; }
+    .panel-close:hover { color:var(--text); }
+    .country-flag { font-size:2.8rem; line-height:1; margin-bottom:8px; }
+    .country-name { font-family:'Playfair Display',serif; font-size:1.35rem; font-weight:600; margin-bottom:3px; }
+    .country-region { font-size:.75rem; color:var(--text-muted); margin-bottom:16px; text-transform:uppercase; letter-spacing:.06em; }
+    .data-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+    .data-cell { background:var(--panel); border-radius:8px; padding:9px 11px; }
+    .data-cell.full { grid-column:1/-1; }
+    .data-cell-label { font-size:.62rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:3px; }
+    .data-cell-value { font-size:.85rem; font-weight:500; }
+    .status-buttons { display:flex; flex-direction:column; gap:7px; }
+    .status-btn { display:flex; align-items:center; gap:9px; padding:9px 13px; border-radius:9px; border:1.5px solid transparent; background:var(--panel); color:var(--text-muted); font-family:'DM Sans',sans-serif; font-size:.8rem; cursor:pointer; transition:all .2s; text-align:left; }
+    .status-btn:hover { color:var(--text); border-color:var(--border); }
+    .status-btn.active-visited  { background:rgba(34,197,94,.15);  border-color:var(--visited);  color:var(--visited);  }
+    .status-btn.active-planned  { background:rgba(59,130,246,.15); border-color:var(--planned);  color:var(--planned);  }
+    .status-btn.active-wishlist { background:rgba(245,158,11,.15); border-color:var(--wishlist); color:var(--wishlist); }
+
+    /* STATS PANEL */
+    .stats-panel { position:absolute; top:16px; left:16px; width:300px; background:rgba(15,21,36,.98); border:1px solid var(--border); border-radius:14px; padding:22px; transform:translateX(-330px); transition:transform .35s cubic-bezier(.34,1.2,.64,1); z-index:50; backdrop-filter:blur(12px); max-height:calc(100vh - 100px); overflow-y:auto; }
+    .stats-panel.open { transform:translateX(0); }
+
+    .sp-title { font-family:'Playfair Display',serif; font-size:1.1rem; font-weight:600; color:var(--accent); margin-bottom:18px; display:flex; align-items:center; gap:8px; }
+
+    /* World % ring */
+    .world-ring-wrap { display:flex; align-items:center; gap:18px; margin-bottom:22px; padding:16px; background:var(--panel); border-radius:12px; }
+    .ring-svg { flex-shrink:0; }
+    .ring-bg { fill:none; stroke:#2a3a55; stroke-width:8; }
+    .ring-fill { fill:none; stroke:var(--visited); stroke-width:8; stroke-linecap:round; transition:stroke-dasharray 1s ease; transform:rotate(-90deg); transform-origin:50% 50%; }
+    .ring-text-wrap { flex:1; }
+    .ring-pct { font-family:'Playfair Display',serif; font-size:2rem; font-weight:700; color:var(--visited); line-height:1; }
+    .ring-pct span { font-size:1rem; color:var(--text-muted); }
+    .ring-label { font-size:.75rem; color:var(--text-muted); margin-top:4px; }
+    .ring-sub { font-size:.7rem; color:var(--text-muted); margin-top:2px; }
+
+    /* Continent bars */
+    .continent-section { margin-bottom:20px; }
+    .section-label { font-size:.68rem; text-transform:uppercase; letter-spacing:.1em; color:var(--text-muted); margin-bottom:10px; }
+    .continent-row { margin-bottom:10px; }
+    .cont-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+    .cont-name { font-size:.82rem; }
+    .cont-count { font-size:.75rem; color:var(--text-muted); }
+    .cont-bar-bg { height:5px; background:#1e2d45; border-radius:3px; overflow:hidden; }
+    .cont-bar-fill { height:100%; border-radius:3px; transition:width 1s ease; }
+
+    /* Badges */
+    .badges-section { }
+    .badges-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+    .badge { padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--panel); text-align:center; transition:all .3s; }
+    .badge.earned { border-color:var(--accent); background:rgba(232,201,122,.08); }
+    .badge-icon { font-size:1.5rem; margin-bottom:4px; filter:grayscale(1) opacity(.35); transition:filter .3s; }
+    .badge.earned .badge-icon { filter:none; }
+    .badge-name { font-size:.68rem; color:var(--text-muted); line-height:1.3; transition:color .3s; }
+    .badge.earned .badge-name { color:var(--accent); }
+
+    /* TOOLTIP */
+    #tooltip { position:absolute; background:rgba(17,24,39,.95); border:1px solid var(--border); padding:6px 11px; border-radius:8px; font-size:.78rem; pointer-events:none; opacity:0; transition:opacity .15s; z-index:200; white-space:nowrap; }
+    #tooltip.show { opacity:1; }
+
+    /* SEARCH */
+    .search-wrap { position:absolute; bottom:22px; left:50%; transform:translateX(-50%); z-index:50; }
+    .search-input { padding:9px 17px; background:rgba(17,24,39,.95); border:1px solid var(--border); border-radius:30px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:.83rem; width:250px; outline:none; transition:border-color .2s; }
+    .search-input::placeholder { color:var(--text-muted); }
+    .search-input:focus { border-color:var(--accent); }
+    .search-results { position:absolute; bottom:calc(100% + 8px); left:0; right:0; background:rgba(17,24,39,.98); border:1px solid var(--border); border-radius:12px; max-height:200px; overflow-y:auto; display:none; }
+    .search-results.show { display:block; }
+    .search-result-item { padding:8px 15px; font-size:.8rem; cursor:pointer; transition:background .15s; border-bottom:1px solid var(--border); }
+    .search-result-item:last-child { border-bottom:none; }
+    .search-result-item:hover { background:var(--panel); }
+
+    /* ZOOM */
+    .zoom-controls { position:absolute; bottom:22px; right:22px; display:flex; flex-direction:column; gap:4px; z-index:50; }
+    .zoom-btn { width:34px; height:34px; background:rgba(17,24,39,.95); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s; }
+    .zoom-btn:hover { background:var(--panel); border-color:var(--accent); }
+
+    /* LOGIN */
+    .login-screen { position:fixed; inset:0; background:var(--ocean); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:28px; z-index:900; opacity:1; transition:opacity .4s; }
+    .login-screen.hidden { opacity:0; pointer-events:none; }
+    .login-globe { font-size:5rem; animation:float 4s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+    .login-title { font-family:'Playfair Display',serif; font-size:3rem; font-weight:700; color:var(--accent); letter-spacing:.06em; text-align:center; }
+    .login-sub { font-size:.92rem; color:var(--text-muted); text-align:center; max-width:300px; line-height:1.6; margin-top:8px; }
+    .google-btn { display:flex; align-items:center; gap:12px; padding:13px 26px; background:white; color:#333; border:none; border-radius:10px; font-family:'DM Sans',sans-serif; font-size:.92rem; font-weight:500; cursor:pointer; transition:all .2s; box-shadow:0 2px 20px rgba(0,0,0,.35); }
+    .google-btn:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(0,0,0,.45); }
+    .google-btn svg { width:20px; height:20px; flex-shrink:0; }
+
+    /* LOADING */
+    .loading-overlay { position:fixed; inset:0; background:var(--ocean); z-index:1000; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; transition:opacity .5s; }
+    .loading-overlay.hidden { opacity:0; pointer-events:none; }
+    .loading-logo { font-family:'Playfair Display',serif; font-size:2.5rem; color:var(--accent); letter-spacing:.06em; }
+    .loading-bar { width:160px; height:2px; background:var(--border); border-radius:2px; overflow:hidden; }
+    .loading-fill { height:100%; background:var(--accent); width:0%; animation:loadbar 2s ease forwards; }
+    @keyframes loadbar { 0%{width:0%} 60%{width:70%} 100%{width:100%} }
+
+
+    /* ACHIEVEMENT POPUP */
+    .achievement-popup {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: linear-gradient(135deg, #1e2d45, #111827);
+      border: 1px solid var(--accent);
+      border-radius: 16px;
+      padding: 18px 20px 18px 18px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      z-index: 800;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .4s ease, transform .4s cubic-bezier(.34,1.4,.64,1);
+      box-shadow: 0 8px 40px rgba(232,201,122,.18), 0 2px 12px rgba(0,0,0,.6);
+      min-width: 290px;
+    }
+    .achievement-popup.show {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateX(-50%) translateY(0);
+    }
+    .ach-icon {
+      font-size: 2.4rem;
+      line-height: 1;
+      flex-shrink: 0;
+      animation: ach-pop .5s cubic-bezier(.34,1.7,.64,1) both;
+    }
+    @keyframes ach-pop {
+      0%   { transform: scale(0) rotate(-20deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    .ach-text { flex: 1; min-width: 0; }
+    .ach-label { font-size: .62rem; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); margin-bottom: 3px; }
+    .ach-name  { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+    .ach-desc  { font-size: .73rem; color: var(--text-muted); }
+    .ach-dismiss { flex-shrink:0; font-size:.7rem; color:var(--text-muted); border:1px solid var(--border); border-radius:6px; padding:3px 8px; background:none; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .2s; }
+    .ach-dismiss:hover { color:var(--text); border-color:var(--text-muted); }
+    .ach-sparkle { position:absolute; top:-8px; right:16px; font-size:.95rem; animation: sparkle-in .4s ease .3s both; }
+    @keyframes sparkle-in { from{opacity:0;transform:translateY(6px) scale(.5)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+
+    /* ── NOTES & STARS in panel ── */
+    .panel-divider { height:1px; background:var(--border); margin:14px 0; }
+    .panel-section-label { font-size:.62rem; text-transform:uppercase; letter-spacing:.1em; color:var(--text-muted); margin-bottom:8px; }
+
+    .star-row { display:flex; gap:4px; margin-bottom:12px; }
+    .star-btn { background:none; border:none; font-size:1.3rem; cursor:pointer; color:#2a3a55; transition:color .1s, transform .1s; padding:0 2px; line-height:1; }
+    .star-btn.lit, .star-btn.hover-lit { color:#f59e0b; }
+    .star-btn:active { transform:scale(1.3); }
+
+    .year-input { width:100%; padding:8px 11px; background:var(--panel); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:.85rem; outline:none; transition:border-color .2s; margin-bottom:12px; }
+    .year-input:focus { border-color:var(--accent); }
+    .year-input::placeholder { color:var(--text-muted); }
+
+    .notes-textarea { width:100%; padding:9px 11px; background:var(--panel); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:.82rem; outline:none; resize:none; transition:border-color .2s; line-height:1.5; min-height:72px; }
+    .notes-textarea:focus { border-color:var(--accent); }
+    .notes-textarea::placeholder { color:var(--text-muted); }
+    .notes-save-btn { width:100%; margin-top:7px; padding:8px; background:rgba(232,201,122,.1); border:1px solid var(--accent); border-radius:8px; color:var(--accent); font-family:'DM Sans',sans-serif; font-size:.8rem; cursor:pointer; transition:all .2s; }
+    .notes-save-btn:hover { background:rgba(232,201,122,.2); }
+    .notes-saved { color:var(--visited); font-size:.75rem; text-align:center; margin-top:5px; opacity:0; transition:opacity .3s; }
+    .notes-saved.show { opacity:1; }
+
+    /* ── VISITED LIST VIEW ── */
+    .list-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:600;
+      opacity:0; pointer-events:none; transition:opacity .3s;
+    }
+    .list-overlay.show { opacity:1; pointer-events:all; }
+
+    .list-panel {
+      position:fixed; top:0; right:0; bottom:0; width:380px; max-width:100vw;
+      background:#111827; border-left:1px solid var(--border);
+      z-index:700; transform:translateX(100%);
+      transition:transform .35s cubic-bezier(.32,1,.5,1);
+      display:flex; flex-direction:column;
+    }
+    .list-panel.open { transform:translateX(0); }
+
+    .list-header { padding:20px 20px 14px; border-bottom:1px solid var(--border); flex-shrink:0; }
+    .list-header-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .list-title { font-family:'Playfair Display',serif; font-size:1.2rem; font-weight:600; color:var(--accent); }
+    .list-close-btn { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem; padding:4px 8px; border-radius:6px; transition:color .2s; }
+    .list-close-btn:hover { color:var(--text); }
+
+    .list-tabs { display:flex; gap:6px; }
+    .list-tab { padding:5px 12px; border-radius:20px; border:1px solid var(--border); background:none; color:var(--text-muted); font-family:'DM Sans',sans-serif; font-size:.75rem; cursor:pointer; transition:all .2s; }
+    .list-tab.active { border-color:var(--accent); color:var(--accent); background:rgba(232,201,122,.08); }
+
+    .list-search { width:100%; padding:8px 14px; background:var(--panel); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:.82rem; outline:none; margin-top:10px; }
+    .list-search:focus { border-color:var(--accent); }
+    .list-search::placeholder { color:var(--text-muted); }
+
+    .list-body { flex:1; overflow-y:auto; padding:10px 12px; }
+    .list-empty { text-align:center; color:var(--text-muted); font-size:.85rem; padding:40px 20px; line-height:1.7; }
+
+    .list-item { display:flex; align-items:center; gap:12px; padding:10px 10px; border-radius:10px; cursor:pointer; transition:background .15s; border-bottom:1px solid rgba(42,58,85,.4); }
+    .list-item:last-child { border-bottom:none; }
+    .list-item:hover { background:var(--panel); }
+    .list-item-flag { font-size:1.5rem; flex-shrink:0; width:32px; text-align:center; }
+    .list-item-flag img { width:28px; height:auto; border-radius:3px; }
+    .list-item-info { flex:1; min-width:0; }
+    .list-item-name { font-size:.88rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .list-item-sub  { font-size:.72rem; color:var(--text-muted); margin-top:1px; }
+    .list-item-stars { font-size:.75rem; color:#f59e0b; flex-shrink:0; letter-spacing:1px; }
+    .list-item-badge { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+    /* List button in header */
+    .list-toggle-btn { display:flex; align-items:center; gap:6px; padding:7px 14px; background:var(--panel); border:1px solid var(--border); border-radius:8px; color:var(--text-muted); font-family:'DM Sans',sans-serif; font-size:.8rem; cursor:pointer; transition:all .2s; white-space:nowrap; }
+    .list-toggle-btn:hover { color:var(--accent); border-color:var(--accent); }
+    .list-toggle-btn.active { color:var(--accent); border-color:var(--accent); background:rgba(232,201,122,.08); }
+
+    /* Mobile list button in nav */
+    @media (max-width:640px) {
+      .list-panel { width:100vw; border-left:none; border-top:1px solid var(--border); border-radius:20px 20px 0 0; top:auto; height:90dvh; transform:translateY(100%); }
+      .list-panel.open { transform:translateY(0); }
+    }
+
+
+    /* ── ONBOARDING OVERLAY ── */
+    .onboarding {
+      position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:1100;
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none; transition:opacity .4s;
+      backdrop-filter:blur(4px);
+    }
+    .onboarding.show { opacity:1; pointer-events:all; }
+    .ob-card {
+      background:#111827; border:1px solid var(--border); border-radius:20px;
+      padding:32px 28px; max-width:400px; width:calc(100% - 40px);
+      text-align:center; position:relative;
+    }
+    .ob-steps { display:flex; gap:6px; justify-content:center; margin-bottom:28px; }
+    .ob-dot { width:7px; height:7px; border-radius:50%; background:var(--border); transition:background .3s; }
+    .ob-dot.active { background:var(--accent); }
+    .ob-icon { font-size:3rem; margin-bottom:14px; }
+    .ob-title { font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:700; color:var(--text); margin-bottom:8px; }
+    .ob-desc { font-size:.88rem; color:var(--text-muted); line-height:1.65; margin-bottom:28px; }
+    .ob-btn { width:100%; padding:12px; background:var(--accent); border:none; border-radius:10px;
+      color:#0a0f1e; font-family:'DM Sans',sans-serif; font-size:.9rem; font-weight:600;
+      cursor:pointer; transition:opacity .2s; }
+    .ob-btn:hover { opacity:.85; }
+    .ob-skip { display:block; margin-top:12px; font-size:.78rem; color:var(--text-muted); cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+
+    /* ── SHARE / PROFILE MODAL ── */
+    .modal-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:900;
+      display:flex; align-items:center; justify-content:center;
+      padding:env(safe-area-inset-top) 16px calc(70px + env(safe-area-inset-bottom));
+      overflow-y:auto;
+      opacity:0; pointer-events:none; transition:opacity .3s;
+      backdrop-filter:blur(4px);
+    }
+    .modal-overlay.show { opacity:1; pointer-events:all; }
+    .modal-card {
+      background:#111827; border:1px solid var(--border); border-radius:18px;
+      padding:28px 24px; max-width:440px; width:calc(100% - 32px); position:relative;
+      max-height:calc(100dvh - 90px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow-y:auto;
+    }
+    .modal-title { font-family:'Playfair Display',serif; font-size:1.2rem; font-weight:600; color:var(--accent); margin-bottom:6px; }
+    .modal-sub { font-size:.82rem; color:var(--text-muted); margin-bottom:20px; line-height:1.5; }
+    .modal-close { position:absolute; top:14px; right:16px; background:none; border:none; color:var(--text-muted); font-size:1.1rem; cursor:pointer; padding:4px 8px; border-radius:6px; transition:color .2s; }
+    .modal-close:hover { color:var(--text); }
+
+    .share-url-wrap { display:flex; gap:8px; margin-bottom:16px; }
+    .share-url-input { flex:1; padding:9px 12px; background:var(--panel); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:.8rem; outline:none; }
+    .share-copy-btn { padding:9px 14px; background:var(--accent); border:none; border-radius:8px; color:#0a0f1e; font-family:'DM Sans',sans-serif; font-size:.8rem; font-weight:600; cursor:pointer; white-space:nowrap; transition:opacity .2s; }
+    .share-copy-btn:hover { opacity:.85; }
+    .share-copied { font-size:.75rem; color:var(--visited); margin-top:-10px; margin-bottom:12px; opacity:0; transition:opacity .3s; }
+    .share-copied.show { opacity:1; }
+
+    .modal-divider { height:1px; background:var(--border); margin:18px 0; }
+
+    .compare-wrap { display:flex; gap:8px; margin-bottom:14px; }
+    .compare-input { flex:1; padding:9px 12px; background:var(--panel); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:.82rem; outline:none; transition:border-color .2s; }
+    .compare-input:focus { border-color:var(--accent); }
+    .compare-input::placeholder { color:var(--text-muted); }
+    .compare-btn { padding:9px 14px; background:var(--panel); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:.82rem; cursor:pointer; white-space:nowrap; transition:all .2s; }
+    .compare-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .compare-result { font-size:.82rem; color:var(--text-muted); line-height:1.7; background:var(--panel); border-radius:10px; padding:12px 14px; display:none; }
+    .compare-result.show { display:block; }
+    .compare-result strong { color:var(--text); }
+    .compare-result .match-list { margin-top:8px; display:flex; flex-wrap:wrap; gap:4px; }
+    .compare-result .match-chip { background:rgba(34,197,94,.12); border:1px solid rgba(34,197,94,.3); border-radius:20px; padding:2px 9px; font-size:.72rem; color:var(--visited); }
+
+    /* ── READONLY BANNER ── */
+    .readonly-banner {
+      position:fixed; top:0; left:0; right:0; z-index:500;
+      background:rgba(232,201,122,.12); border-bottom:1px solid var(--accent);
+      padding:10px 20px; display:flex; align-items:center; justify-content:space-between;
+      backdrop-filter:blur(8px);
+    }
+    .readonly-banner-text { font-size:.82rem; color:var(--accent); }
+    .readonly-back-btn { font-size:.78rem; color:var(--text-muted); background:none; border:1px solid var(--border); border-radius:6px; padding:5px 12px; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .2s; }
+    .readonly-back-btn:hover { color:var(--text); border-color:var(--text-muted); }
+
+    /* share button */
+    .share-toggle-btn { display:flex; align-items:center; gap:6px; padding:7px 14px; background:var(--panel); border:1px solid var(--border); border-radius:8px; color:var(--text-muted); font-family:'DM Sans',sans-serif; font-size:.8rem; cursor:pointer; transition:all .2s; white-space:nowrap; }
+    .share-toggle-btn:hover { color:var(--accent); border-color:var(--accent); }
+
+    /* export button */
+    .export-btn { display:flex; align-items:center; gap:6px; padding:7px 14px; background:var(--panel); border:1px solid var(--border); border-radius:8px; color:var(--text-muted); font-family:'DM Sans',sans-serif; font-size:.8rem; cursor:pointer; transition:all .2s; white-space:nowrap; }
+    .export-btn:hover { color:var(--accent); border-color:var(--accent); }
+    .export-btn.loading { opacity:.6; pointer-events:none; }
+
+    @media (max-width:640px) {
+      .share-toggle-btn, .export-btn { display:none; }
+    }
+
+
+    /* ── OFFLINE BANNER ── */
+    .offline-banner {
+      position:fixed; bottom:calc(56px + env(safe-area-inset-bottom)); left:0; right:0; z-index:150;
+      background:#1e2d45; border-top:1px solid var(--border);
+      padding:8px 20px; text-align:center; font-size:.78rem;
+      color:var(--text-muted); transform:translateY(100%);
+      transition:transform .3s; display:flex; align-items:center;
+      justify-content:center; gap:8px;
+    }
+    .offline-banner.show { transform:translateY(0); }
+    @media (min-width:641px) {
+      .offline-banner { bottom:0; }
+    }
+
+    /* ── WIKIPEDIA / COUNTRY DETAIL SECTION ── */
+    .wiki-section { margin-top:4px; }
+    .wiki-toggle { width:100%; padding:8px 12px; background:none; border:1px solid var(--border);
+      border-radius:8px; color:var(--text-muted); font-family:'DM Sans',sans-serif; font-size:.78rem;
+      cursor:pointer; transition:all .2s; display:flex; align-items:center; gap:6px; }
+    .wiki-toggle:hover { border-color:var(--accent); color:var(--accent); }
+    .wiki-content { margin-top:10px; display:none; }
+    .wiki-content.open { display:block; }
+    .wiki-excerpt { font-size:.8rem; color:var(--text-muted); line-height:1.65;
+      background:var(--panel); border-radius:10px; padding:12px 14px; margin-bottom:8px; }
+    .wiki-facts { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px; }
+    .wiki-fact { background:var(--panel); border-radius:8px; padding:8px 10px; }
+    .wiki-fact-label { font-size:.6rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:2px; }
+    .wiki-fact-value { font-size:.8rem; font-weight:500; }
+    .wiki-link { display:inline-flex; align-items:center; gap:5px; font-size:.75rem;
+      color:var(--accent); text-decoration:none; opacity:.8; }
+    .wiki-link:hover { opacity:1; }
+    .wiki-loading { font-size:.78rem; color:var(--text-muted); padding:8px 0; text-align:center; }
+
+    /* ── FRIENDS MODAL ── */
+    .friends-list { display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+    .friend-item { display:flex; align-items:center; gap:12px; padding:10px 12px;
+      background:var(--panel); border-radius:10px; border:1px solid var(--border); }
+    .friend-avatar { width:32px; height:32px; border-radius:50%; background:var(--border);
+      display:flex; align-items:center; justify-content:center; font-size:.85rem;
+      flex-shrink:0; overflow:hidden; }
+    .friend-avatar img { width:100%; height:100%; object-fit:cover; }
+    .friend-info { flex:1; min-width:0; }
+    .friend-name { font-size:.85rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .friend-stats { font-size:.72rem; color:var(--text-muted); margin-top:1px; }
+    .friend-actions { display:flex; gap:6px; flex-shrink:0; }
+    .friend-action-btn { padding:5px 10px; border-radius:6px; border:1px solid var(--border);
+      background:none; color:var(--text-muted); font-family:'DM Sans',sans-serif; font-size:.72rem;
+      cursor:pointer; transition:all .2s; white-space:nowrap; }
+    .friend-action-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .friend-action-btn.remove { color:#f87171; }
+    .friend-action-btn.remove:hover { border-color:#f87171; }
+    .friends-empty { text-align:center; color:var(--text-muted); font-size:.82rem;
+      padding:20px; line-height:1.7; }
+    .friends-tab-bar { display:flex; gap:6px; margin-bottom:14px; }
+    .friends-tab { padding:5px 12px; border-radius:20px; border:1px solid var(--border);
+      background:none; color:var(--text-muted); font-family:'DM Sans',sans-serif;
+      font-size:.75rem; cursor:pointer; transition:all .2s; }
+    .friends-tab.active { border-color:var(--accent); color:var(--accent); background:rgba(232,201,122,.08); }
+
+    /* ── MOBILE RESPONSIVE ── */
+    @media (max-width: 860px) {
+      /* Hide legend on tablets to prevent overflow */
+      .legend { display:none; }
+    }
+    @media (max-width: 640px) {
+      /* Header: only logo + stats visible */
+      header { padding:10px 16px; padding-top:calc(10px + env(safe-area-inset-top)); justify-content:space-between; background:rgba(17,24,39,.97); }
+      .logo span { display:none; }
+      .legend { display:none; }
+      .stats-toggle-btn { display:none; }
+      .auth-btn { display:none; }
+      .header-right { display:none; }
+      .stats-bar { gap:18px; }
+      .stat-num { font-size:1.2rem; }
+      .stat-label { font-size:.6rem; }
+
+      /* Zoom buttons hidden on mobile (use pinch) */
+      .zoom-controls { display:none; }
+
+      /* Search bar narrower */
+      .search-input { width:200px; font-size:.8rem; }
+
+      /* Tooltip hidden on mobile (use tap instead) */
+      #tooltip { display:none; }
+      /* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */
+      .search-input { font-size:16px; }
+
+      /* Desktop side panels hidden on mobile */
+      .info-panel  { display:none !important; }
+      .stats-panel { display:none !important; }
+
+      /* Achievement popup on mobile — move to top */
+      .achievement-popup {
+        min-width:unset;
+        width:calc(100% - 32px);
+        bottom:unset;
+        top:calc(16px + env(safe-area-inset-top));
+        transform:translateX(-50%) translateY(-20px);
+      }
+      .achievement-popup.show {
+        transform:translateX(-50%) translateY(0);
+      }
+    }
+
+    /* ── BOTTOM SHEET (mobile only) ── */
+    .bottom-sheet-overlay {
+      display:none;
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.5);
+      z-index:300;
+      opacity:0;
+      transition:opacity .3s;
+    }
+    .bottom-sheet-overlay.show { opacity:1; }
+
+    .bottom-sheet {
+      display:none;
+      position:fixed;
+      bottom:0; left:0; right:0;
+      background:#111827;
+      border-radius:20px 20px 0 0;
+      border-top:1px solid var(--border);
+      z-index:400;
+      transform:translateY(100%);
+      transition:transform .35s cubic-bezier(.32,1,.5,1);
+      padding-bottom:env(safe-area-inset-bottom);
+      max-height:90dvh;
+      overflow-y:auto;
+    }
+    .bottom-sheet.open { transform:translateY(0); }
+
+    .bs-handle-wrap { display:flex; justify-content:center; padding:12px 0 4px; flex-shrink:0; }
+    .bs-handle { width:36px; height:4px; background:var(--border); border-radius:2px; }
+
+    .bs-content { padding:0 20px 24px; }
+
+    .bs-flag { font-size:3rem; line-height:1; margin-bottom:6px; }
+    .bs-name { font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:700; margin-bottom:2px; }
+    .bs-region { font-size:.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:18px; }
+
+    .bs-data-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:18px; }
+    .bs-data-cell { background:var(--panel); border-radius:10px; padding:10px 12px; }
+    .bs-data-cell.full { grid-column:1/-1; }
+    .bs-data-label { font-size:.62rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:3px; }
+    .bs-data-value { font-size:.88rem; font-weight:500; }
+
+    .bs-status-buttons { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+    .bs-status-btn { display:flex; flex-direction:column; align-items:center; gap:6px; padding:12px 8px; border-radius:12px; border:1.5px solid transparent; background:var(--panel); color:var(--text-muted); font-family:'DM Sans',sans-serif; font-size:.72rem; cursor:pointer; transition:all .2s; text-align:center; }
+    .bs-status-btn svg { flex-shrink:0; }
+    .bs-status-btn:active { transform:scale(.96); }
+    .bs-status-btn.active-visited  { background:rgba(34,197,94,.15);  border-color:var(--visited);  color:var(--visited);  }
+    .bs-status-btn.active-planned  { background:rgba(59,130,246,.15); border-color:var(--planned);  color:var(--planned);  }
+    .bs-status-btn.active-wishlist { background:rgba(245,158,11,.15); border-color:var(--wishlist); color:var(--wishlist); }
+
+    /* ── STATS BOTTOM SHEET ── */
+    .stats-bottom-sheet {
+      display:none;
+      position:fixed;
+      bottom:0; left:0; right:0;
+      background:#111827;
+      border-radius:20px 20px 0 0;
+      border-top:1px solid var(--border);
+      z-index:400;
+      transform:translateY(100%);
+      transition:transform .35s cubic-bezier(.32,1,.5,1);
+      padding-bottom:env(safe-area-inset-bottom);
+      max-height:90dvh;
+      overflow-y:auto;
+    }
+    .stats-bottom-sheet.open { transform:translateY(0); }
+
+    /* ── MOBILE NAV BAR ── */
+    .mobile-nav {
+      display:none;
+      position:fixed;
+      bottom:0; left:0; right:0;
+      height:calc(56px + env(safe-area-inset-bottom));
+      padding-bottom:env(safe-area-inset-bottom);
+      background:rgba(17,24,39,.97);
+      border-top:1px solid var(--border);
+      z-index:200;
+      flex-direction:row;
+      align-items:center;
+      justify-content:space-around;
+      padding-top:4px;
+      backdrop-filter:blur(12px);
+    }
+    /* Fill gap below nav — done via html background color */
+    .mobile-nav-btn {
+      display:flex; flex-direction:column; align-items:center; gap:3px;
+      background:none; border:none; color:var(--text-muted);
+      font-family:'DM Sans',sans-serif; font-size:.62rem;
+      cursor:pointer; padding:6px 20px; border-radius:10px;
+      transition:color .2s; flex:1;
+    }
+    .mobile-nav-btn.active { color:var(--accent); }
+    .mobile-nav-btn svg { flex-shrink:0; }
+
+    @media (max-width: 640px) {
+      .mobile-nav { display:flex; }
+      .search-wrap { bottom:calc(72px + env(safe-area-inset-bottom)); }
+    }
+    ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+  </style>
+
+  <script>
+  (function(){
+    try {
+      const c = document.createElement('canvas');
+      c.width = c.height = 180;
+      const ctx = c.getContext('2d');
+      // Dark gradient background (fills entire square — iOS adds rounding)
+      const grad = ctx.createLinearGradient(0, 0, 180, 180);
+      grad.addColorStop(0, '#0d1b3e');
+      grad.addColorStop(1, '#0a0f1e');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 180, 180);
+      // "Atlas" centered — Playfair Display style, serif fallback
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#e8c97a';
+      ctx.font = 'bold 52px Georgia, serif';
+      ctx.fillText('Atlas', 90, 90);
+      const png = c.toDataURL('image/png');
+      let link = document.querySelector('link[rel="apple-touch-icon"]');
+      if (!link) { link = document.createElement('link'); link.rel = 'apple-touch-icon'; document.head.appendChild(link); }
+      link.href = png;
+    } catch(e) {}
+  })();
+  </script>
+</head>
+<body>
+
+<div id="ios-bottom-fill" style="position:fixed;bottom:0;left:0;right:0;height:env(safe-area-inset-bottom);background:rgba(17,24,39,.97);z-index:199;display:none"></div>
+<div class="offline-banner" id="offline-banner">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.56 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>
+  You're offline — your data is saved locally
+</div>
+
+<div class="loading-overlay" id="loading">
+  <div class="loading-logo">Atlas</div>
+  <div class="loading-bar"><div class="loading-fill"></div></div>
+</div>
+
+<div class="login-screen hidden" id="login-screen">
+  <span class="login-globe">🌍</span>
+  <div>
+    <div class="login-title">Atlas</div>
+    <div class="login-sub">Track every country you've visited, planned, or dreamed of exploring.</div>
+  </div>
+  <button class="google-btn" id="google-sign-in-btn">
+    <svg viewBox="0 0 48 48">
+      <path fill="#FFC107" d="M43.6 20H24v8h11.3C33.7 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 2.9l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 20-9 20-20 0-1.3-.1-2.7-.4-4z"/>
+      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 16 19 13 24 13c3 0 5.7 1.1 7.8 2.9l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+      <path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5l-6.2-5.2C29.4 35.6 26.8 36.5 24 36.5c-5.3 0-9.7-3-11.3-7.1l-6.6 5.1C9.6 39.6 16.3 44 24 44z"/>
+      <path fill="#1976D2" d="M43.6 20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.8l6.2 5.2C41 35.3 44 30 44 24c0-1.3-.1-2.7-.4-4z"/>
+    </svg>
+    Continue with Google
+  </button>
+</div>
+
+<header>
+  <div style="display:flex;align-items:center;gap:20px">
+    <div class="logo">Atlas <span>World Travel Tracker</span></div>
+    <div class="stats-bar">
+      <div class="stat"><div class="stat-num v" id="count-visited">0</div><div class="stat-label">Visited</div></div>
+      <div class="stat"><div class="stat-num p" id="count-planned">0</div><div class="stat-label">Planned</div></div>
+      <div class="stat"><div class="stat-num w" id="count-wishlist">0</div><div class="stat-label">Wishlist</div></div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--visited)"></div>Visited</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--planned)"></div>Planned</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--wishlist)"></div>Wishlist</div>
+    </div>
+    <button class="stats-toggle-btn" id="stats-toggle-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      My Stats
+    </button>
+    <button class="list-toggle-btn" id="list-toggle-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg>
+      My List
+    </button>
+    <button class="share-toggle-btn" id="friends-btn" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Friends
+    </button>
+    <button class="share-toggle-btn" id="share-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      Share
+    </button>
+    <button class="export-btn" id="export-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export PNG
+    </button>
+    <button class="auth-btn" id="auth-btn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span id="auth-label">Sign out</span>
+    </button>
+  </div>
+</header>
+
+<div class="map-container">
+  <svg id="map-svg"></svg>
+
+  <!-- Stats Panel (left) -->
+  <div class="stats-panel" id="stats-panel">
+    <div class="sp-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      My Travel Stats
+    </div>
+
+    <!-- World ring -->
+    <div class="world-ring-wrap">
+      <svg class="ring-svg" width="72" height="72" viewBox="0 0 72 72">
+        <circle class="ring-bg" cx="36" cy="36" r="28"/>
+        <circle class="ring-fill" id="ring-fill" cx="36" cy="36" r="28" stroke-dasharray="0 176"/>
+      </svg>
+      <div class="ring-text-wrap">
+        <div class="ring-pct" id="ring-pct">0<span>%</span></div>
+        <div class="ring-label" id="ring-label">of the world visited</div>
+        <div class="ring-sub" id="ring-sub">0 of 195 countries</div>
+      </div>
+    </div>
+
+    <!-- Continent bars -->
+    <div class="continent-section">
+      <div class="section-label">By Continent</div>
+      <div id="continent-bars"></div>
+    </div>
+
+    <!-- Badges -->
+    <div class="badges-section">
+      <div class="section-label">Achievements</div>
+      <div class="badges-grid" id="badges-grid"></div>
+    </div>
+  </div>
+
+  <!-- Country Info Panel (right) -->
+  <div class="info-panel" id="info-panel">
+    <button class="panel-close" id="panel-close-btn">✕</button>
+    <div class="country-flag" id="panel-flag"></div>
+    <div class="country-name" id="panel-name"></div>
+    <div class="country-region" id="panel-region"></div>
+    <div class="data-grid" id="panel-data"></div>
+    <div class="status-buttons">
+      <button class="status-btn" id="btn-visited">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>Mark as Visited
+      </button>
+      <button class="status-btn" id="btn-planned">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Planning to Go
+      </button>
+      <button class="status-btn" id="btn-wishlist">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>Add to Wishlist
+      </button>
+    </div>
+    <div class="panel-divider"></div>
+    <div class="panel-section-label">Rating</div>
+    <div class="star-row" id="panel-stars">
+      <button class="star-btn" data-star="1">★</button>
+      <button class="star-btn" data-star="2">★</button>
+      <button class="star-btn" data-star="3">★</button>
+      <button class="star-btn" data-star="4">★</button>
+      <button class="star-btn" data-star="5">★</button>
+    </div>
+    <div class="panel-section-label">Year Visited</div>
+    <input class="year-input" id="panel-year" type="number" min="1900" max="2099" placeholder="e.g. 2023" />
+    <div class="panel-section-label">Notes</div>
+    <textarea class="notes-textarea" id="panel-notes" placeholder="e.g. Amazing food, visited in summer…" rows="3"></textarea>
+    <button class="notes-save-btn" id="panel-save-btn">Save Notes & Details</button>
+    <div class="notes-saved" id="panel-saved">✓ Saved!</div>
+    <div class="panel-divider"></div>
+    <div class="wiki-section" id="panel-wiki-section">
+      <button class="wiki-toggle" id="panel-wiki-toggle">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Learn more about this country
+      </button>
+      <div class="wiki-content" id="panel-wiki-content"></div>
+    </div>
+  </div>
+
+  <div id="tooltip"></div>
+  <div class="search-wrap">
+    <input type="text" class="search-input" id="search" placeholder="🔍  Search country..." autocomplete="off" />
+    <div class="search-results" id="search-results"></div>
+  </div>
+  <div class="zoom-controls">
+    <button class="zoom-btn" id="zoom-in">+</button>
+    <button class="zoom-btn" id="zoom-out">−</button>
+    <button class="zoom-btn" id="zoom-reset" style="font-size:.68rem">⌂</button>
+  </div>
+  <!-- Achievement Popup -->
+  <div class="achievement-popup" id="ach-popup">
+    <span class="ach-sparkle">✨</span>
+    <div class="ach-icon" id="ach-icon">🏅</div>
+    <div class="ach-text">
+      <div class="ach-label">Achievement Unlocked!</div>
+      <div class="ach-name" id="ach-name">Badge Name</div>
+      <div class="ach-desc" id="ach-desc">Description</div>
+    </div>
+    <button class="ach-dismiss" id="ach-dismiss">✕</button>
+  </div>
+
+  <!-- Bottom sheet overlay -->
+  <div class="bottom-sheet-overlay" id="bs-overlay"></div>
+
+  <!-- Country Bottom Sheet (mobile) -->
+  <div class="bottom-sheet" id="bottom-sheet">
+    <div class="bs-handle-wrap"><div class="bs-handle"></div></div>
+    <div class="bs-content">
+      <div class="bs-flag" id="bs-flag">🌍</div>
+      <div class="bs-name" id="bs-name"></div>
+      <div class="bs-region" id="bs-region"></div>
+      <div class="bs-data-grid" id="bs-data"></div>
+      <div class="bs-status-buttons">
+        <button class="bs-status-btn" id="bs-btn-visited">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>
+          Visited
+        </button>
+        <button class="bs-status-btn" id="bs-btn-planned">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          Planned
+        </button>
+        <button class="bs-status-btn" id="bs-btn-wishlist">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          Wishlist
+        </button>
+      </div>
+      <div class="panel-divider"></div>
+      <div class="panel-section-label">Rating</div>
+      <div class="star-row" id="bs-stars">
+        <button class="star-btn" data-star="1">★</button>
+        <button class="star-btn" data-star="2">★</button>
+        <button class="star-btn" data-star="3">★</button>
+        <button class="star-btn" data-star="4">★</button>
+        <button class="star-btn" data-star="5">★</button>
+      </div>
+      <div class="panel-section-label">Year Visited</div>
+      <input class="year-input" id="bs-year" type="number" min="1900" max="2099" placeholder="e.g. 2023" style="font-size:16px" />
+      <div class="panel-section-label">Notes</div>
+      <textarea class="notes-textarea" id="bs-notes" placeholder="e.g. Amazing food, visited in summer…" rows="3" style="font-size:16px"></textarea>
+      <button class="notes-save-btn" id="bs-save-btn">Save Notes & Details</button>
+      <div class="notes-saved" id="bs-saved">✓ Saved!</div>
+      <div class="panel-divider"></div>
+      <div class="wiki-section" id="bs-wiki-section">
+        <button class="wiki-toggle" id="bs-wiki-toggle">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Learn more about this country
+        </button>
+        <div class="wiki-content" id="bs-wiki-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Bottom Sheet (mobile) -->
+  <div class="stats-bottom-sheet" id="stats-bottom-sheet">
+    <div class="bs-handle-wrap"><div class="bs-handle"></div></div>
+    <div class="bs-content">
+      <div class="sp-title" style="margin-bottom:16px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        My Travel Stats
+      </div>
+      <div class="world-ring-wrap">
+        <svg class="ring-svg" width="72" height="72" viewBox="0 0 72 72">
+          <circle class="ring-bg" cx="36" cy="36" r="28"/>
+          <circle class="ring-fill" id="ring-fill-m" cx="36" cy="36" r="28" stroke-dasharray="0 176"/>
+        </svg>
+        <div class="ring-text-wrap">
+          <div class="ring-pct" id="ring-pct-m">0<span>%</span></div>
+          <div class="ring-label">of the world visited</div>
+          <div class="ring-sub" id="ring-sub-m">0 of 195 countries</div>
+        </div>
+      </div>
+      <div class="continent-section">
+        <div class="section-label">By Continent</div>
+        <div id="continent-bars-m"></div>
+      </div>
+      <div class="badges-section">
+        <div class="section-label">Achievements</div>
+        <div class="badges-grid" id="badges-grid-m"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- List overlay + panel -->
+  <div class="list-overlay" id="list-overlay"></div>
+  <div class="list-panel" id="list-panel">
+    <div class="list-header">
+      <div class="list-header-top">
+        <div class="list-title">🗺️ My Countries</div>
+        <button class="list-close-btn" id="list-close-btn">✕</button>
+      </div>
+      <div class="list-tabs">
+        <button class="list-tab active" data-filter="visited">✅ Visited</button>
+        <button class="list-tab" data-filter="planned">📅 Planned</button>
+        <button class="list-tab" data-filter="wishlist">💛 Wishlist</button>
+      </div>
+      <input class="list-search" id="list-search" placeholder="Filter countries…" autocomplete="off" style="font-size:16px" />
+    </div>
+    <div class="list-body" id="list-body"></div>
+  </div>
+
+  <!-- Mobile Nav Bar -->
+  <nav class="mobile-nav" id="mobile-nav">
+    <button class="mobile-nav-btn" id="mob-search-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      Search
+    </button>
+    <button class="mobile-nav-btn" id="mob-stats-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Stats
+    </button>
+    <button class="mobile-nav-btn" id="mob-list-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg>
+      List
+    </button>
+    <button class="mobile-nav-btn" id="mob-share-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      Share
+    </button>
+    <button class="mobile-nav-btn" id="mob-auth-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span id="mob-auth-label">Sign in</span>
+    </button>
+  </nav>
+
+  <!-- Share / Compare Modal -->
+  <div class="modal-overlay" id="share-modal">
+    <div class="modal-card">
+      <button class="modal-close" id="share-modal-close">✕</button>
+      <div class="modal-title">🔗 Share Your Map</div>
+      <div class="modal-sub">Anyone with this link can view your travel map in read-only mode.</div>
+      <div class="share-url-wrap">
+        <input class="share-url-input" id="share-url-input" readonly />
+        <button class="share-copy-btn" id="share-copy-btn">Copy</button>
+      </div>
+      <div class="share-copied" id="share-copied">✓ Copied to clipboard!</div>
+
+      <div class="modal-divider"></div>
+
+      <div class="modal-title" style="font-size:1rem;margin-bottom:4px">👥 Compare with a Friend</div>
+      <div class="modal-sub" style="margin-bottom:12px">Paste a friend's share link to see which countries you both visited.</div>
+      <div class="compare-wrap">
+        <input class="compare-input" id="compare-input" placeholder="Paste friend's link or user ID…" style="font-size:16px" />
+        <button class="compare-btn" id="compare-btn">Compare</button>
+      </div>
+      <div class="compare-result" id="compare-result"></div>
+
+      <div class="modal-divider"></div>
+      <div class="modal-title" style="font-size:1rem;margin-bottom:4px">👥 Saved Friends</div>
+      <div class="modal-sub" style="margin-bottom:10px">Friends you've compared with, saved for quick access.</div>
+      <div class="friends-list" id="friends-list"></div>
+    </div>
+  </div>
+
+  <!-- Onboarding Overlay -->
+  <div class="onboarding" id="onboarding">
+    <div class="ob-card">
+      <div class="ob-steps" id="ob-steps"></div>
+      <div class="ob-icon" id="ob-icon">🌍</div>
+      <div class="ob-title" id="ob-title">Welcome to Atlas!</div>
+      <div class="ob-desc" id="ob-desc">Your personal world travel tracker. Let's show you around.</div>
+      <button class="ob-btn" id="ob-next">Get Started →</button>
+      <span class="ob-skip" id="ob-skip">Skip tour</span>
+    </div>
+  </div>
+
+  <!-- Read-only banner (shown when viewing another user's map) -->
+  <div class="readonly-banner" id="readonly-banner" style="display:none">
+    <span class="readonly-banner-text" id="readonly-text">👁️ Viewing a friend's travel map</span>
+    <button class="readonly-back-btn" id="readonly-back-btn">← Back to my map</button>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp }      from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, enableIndexedDbPersistence }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import * as topojson from 'https://cdn.jsdelivr.net/npm/topojson-client@3/+esm';
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyCwQRpC_T3_yRvpO_PZQwYx7jxwPBzAtOg",
+  authDomain:        "atlas-tracker-e70d1.firebaseapp.com",
+  projectId:         "atlas-tracker-e70d1",
+  storageBucket:     "atlas-tracker-e70d1.firebasestorage.app",
+  messagingSenderId: "1033341811962",
+  appId:             "1:1033341811962:web:53451cbf878a91e87e5d43",
+  measurementId:     "G-J4XDWM39H1"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth  = getAuth(fbApp);
+const db    = getFirestore(fbApp);
+enableIndexedDbPersistence(db).catch(() => {}); // offline support
+
+// ── BUNDLED DATA ──────────────────────────────────────
+const COUNTRIES = [{"cca3": "AFG", "ccn3": "004", "name": "Afghanistan", "flag": "🇦🇫", "region": "Asia", "subregion": "Southern Asia", "capital": "Kabul", "population": 40218234, "area": 652230, "languages": "Dari, Pashto", "currency": "Afghan afghani (؋)", "timezone": "UTC+04:30", "cca2": "af"}, {"cca3": "ALB", "ccn3": "008", "name": "Albania", "flag": "🇦🇱", "region": "Europe", "subregion": "Southern Europe", "capital": "Tirana", "population": 2837743, "area": 28748, "languages": "Albanian", "currency": "Albanian lek (L)", "timezone": "UTC+01:00", "cca2": "al"}, {"cca3": "DZA", "ccn3": "012", "name": "Algeria", "flag": "🇩🇿", "region": "Africa", "subregion": "Northern Africa", "capital": "Algiers", "population": 44700000, "area": 2381741, "languages": "Arabic, Tamazight", "currency": "Algerian dinar (د.ج)", "timezone": "UTC+01:00", "cca2": "dz"}, {"cca3": "AND", "ccn3": "020", "name": "Andorra", "flag": "🇦🇩", "region": "Europe", "subregion": "Southern Europe", "capital": "Andorra la Vella", "population": 77265, "area": 468, "languages": "Catalan", "currency": "Euro (€)", "timezone": "UTC+01:00", "cca2": "ad"}, {"cca3": "AGO", "ccn3": "024", "name": "Angola", "flag": "🇦🇴", "region": "Africa", "subregion": "Middle Africa", "capital": "Luanda", "population": 32866268, "area": 1246700, "languages": "Portuguese", "currency": "Angolan kwanza (Kz)", "timezone": "UTC+01:00", "cca2": "ao"}, {"cca3": "ATG", "ccn3": "028", "name": "Antigua and Barbuda", "flag": "🇦🇬", "region": "Americas", "subregion": "Caribbean", "capital": "Saint John's", "population": 97929, "area": 442, "languages": "English", "currency": "Eastern Caribbean dollar ($)", "timezone": "UTC-04:00", "cca2": "ag"}, {"cca3": "ARG", "ccn3": "032", "name": "Argentina", "flag": "🇦🇷", "region": "Americas", "subregion": "South America", "capital": "Buenos Aires", "population": 45376763, "area": 2780400, "languages": "Spanish", "currency": "Argentine peso ($)", "timezone": "UTC-03:00", "cca2": "ar"}, {"cca3": "ARM", "ccn3": "051", "name": "Armenia", "flag": "🇦🇲", "region": "Asia", "subregion": "Western Asia", "capital": "Yerevan", "population": 2963234, "area": 29743, "languages": "Armenian", "currency": "Armenian dram (֏)", "timezone": "UTC+04:00", "cca2": "am"}, {"cca3": "AUS", "ccn3": "036", "name": "Australia", "flag": "🇦🇺", "region": "Oceania", "subregion": "Australia and New Zealand", "capital": "Canberra", "population": 25687041, "area": 7692024, "languages": "English", "currency": "Australian dollar ($)", "timezone": "UTC+08:00", "cca2": "au"}, {"cca3": "AUT", "ccn3": "040", "name": "Austria", "flag": "🇦🇹", "region": "Europe", "subregion": "Central Europe", "capital": "Vienna", "population": 9006398, "area": 83871, "languages": "German", "currency": "Euro (€)", "timezone": "UTC+01:00", "cca2": "at"}, {"cca3": "AZE", "ccn3": "031", "name": "Azerbaijan", "flag": "🇦🇿", "region": "Asia", "subregion": "Western Asia", "capital": "Baku", "population": 10110116, "area": 86600, "languages": "Azerbaijani", "currency": "Azerbaijani manat (₼)", "timezone": "UTC+04:00", "cca2": "az"}, {"cca3": "BHS", "ccn3": "044", "name": "Bahamas", "flag": "🇧🇸", "region": "Americas", "subregion": "Caribbean", "capital": "Nassau", "population": 393248, "area": 13943, "languages": "English", "currency": "Bahamian dollar ($)", "timezone": "UTC-05:00", "cca2": "bs"}, {"cca3": "BHR", "ccn3": "048", "name": "Bahrain", "flag": "🇧🇭", "region": "Asia", "subregion": "Western Asia", "capital": "Manama", "population": 1701583, "area": 765, "languages": "Arabic", "currency": "Bahraini dinar (.د.ب)", "timezone": "UTC+03:00", "cca2": "bh"}, {"cca3": "BGD", "ccn3": "050", "name": "Bangladesh", "flag": "🇧🇩", "region": "Asia", "subregion": "Southern Asia", "capital": "Dhaka", "population": 164689383, "area": 147570, "languages": "Bengali", "currency": "Bangladeshi taka (৳)", "timezone": "UTC+06:00", "cca2": "bd"}, {"cca3": "BRB", "ccn3": "052", "name": "Barbados", "flag": "🇧🇧", "region": "Americas", "subregion": "Caribbean", "capital": "Bridgetown", "population": 287371, "area": 430, "languages": "English", "currency": "Barbadian dollar ($)", "timezone": "UTC-04:00", "cca2": "bb"}, {"cca3": "BLR", "ccn3": "112", "name": "Belarus", "flag": "🇧🇾", "region": "Europe", "subregion": "Eastern Europe", "capital": "Minsk", "population": 9398861, "area": 207600, "languages": "Belarusian, Russian", "currency": "Belarusian ruble (Br)", "timezone": "UTC+03:00", "cca2": "by"}, {"cca3": "BEL", "ccn3": "056", "name": "Belgium", "flag": "🇧🇪", "region": "Europe", "subregion": "Western Europe", "capital": "Brussels", "population": 11555997, "area": 30528, "languages": "Dutch, French, German", "currency": "Euro (€)", "timezone": "UTC+01:00", "cca2": "be"}, {"cca3": "BLZ", "ccn3": "084", "name": "Belize", "flag": "🇧🇿", "region": "Americas", "subregion": "Central America", "capital": "Belmopan", "population": 397621, "area": 22966, "languages": "English, Spanish", "currency": "Belize dollar ($)", "timezone": "UTC-06:00", "cca2": "bz"}, {"cca3": "BEN", "ccn3": "204", "name": "Benin", "flag": "🇧🇯", "region": "Africa", "subregion": "Western Africa", "capital": "Porto-Novo", "population": 12123198, "area": 112622, "languages": "French", "currency": "West African CFA franc (Fr)", "timezone": "UTC+01:00", "cca2": "bj"}, {"cca3": "BTN", "ccn3": "064", "name": "Bhutan", "flag": "🇧🇹", "region": "Asia", "subregion": "Southern Asia", "capital": "Thimphu", "population": 771612, "area": 38394, "languages": "Dzongkha", "currency": "Bhutanese ngultrum (Nu)", "timezone": "UTC+06:00", "cca2": "bt"}, {"cca3": "BOL", "ccn3": "068", "name": "Bolivia", "flag": "🇧🇴", "region": "Americas", "subregion": "South America", "capital": "Sucre", "population": 11673029, "area": 1098581, "languages": "Spanish, Quechua, Aymara", "currency": "Bolivian boliviano (Bs.)", "timezone": "UTC-04:00", "cca2": "bo"}, {"cca3": "BIH", "ccn3": "070", "name": "Bosnia and Herzegovina", "flag": "🇧🇦", "region": "Europe", "subregion": "Southern Europe", "capital": "Sarajevo", "population": 3280815, "area": 51209, "languages": "Bosnian, Croatian, Serbian", "currency": "Bosnia and Herzegovina convertible mark (KM)", "timezone": "UTC+01:00", "cca2": "ba"}, {"cca3": "BWA", "ccn3": "072", "name": "Botswana", "flag": "🇧🇼", "region": "Africa", "subregion": "Southern Africa", "capital": "Gaborone", "population": 2588423, "area": 581730, "languages": "English, Tswana", "currency": "Botswana pula (P)", "timezone": "UTC+02:00", "cca2": "bw"}, {"cca3": "BRA", "ccn3": "076", "name": "Brazil", "flag": "🇧🇷", "region": "Americas", "subregion": "South America", "capital": "Brasília", "population": 214326223, "area": 8515767, "languages": "Portuguese", "currency": "Brazilian real (R$)", "timezone": "UTC-03:00", "cca2": "br"}, {"cca3": "BRN", "ccn3": "096", "name": "Brunei", "flag": "🇧🇳", "region": "Asia", "subregion": "South-Eastern Asia", "capital": "Bandar Seri Begawan", "population": 437483, "area": 5765, "languages": "Malay", "currency": "Brunei dollar ($)", "timezone": "UTC+08:00", "cca2": "bn"}, {"cca3": "BGR", "ccn3": "100", "name": "Bulgaria", "flag": "🇧🇬", "region": "Europe", "subregion": "Eastern Europe", "capital": "Sofia", "population": 6520314, "area": 110879, "languages": "Bulgarian", "currency": "Bulgarian lev (лв)", "timezone": "UTC+02:00", "cca2": "bg"}, {"cca3": "BFA", "ccn3": "854", "name": "Burkina Faso", "flag": "🇧🇫", "region": "Africa", "subregion": "Western Africa", "capital": "Ouagadougou", "population": 21510181, "area": 274222, "languages": "French", "currency": "West African CFA franc (Fr)", "timezone": "UTC+00:00", "cca2": "bf"}, {"cca3": "BDI", "ccn3": "108", "name": "Burundi", "flag": "🇧🇮", "region": "Africa", "subregion": "Eastern Africa", "capital": "Gitega", "population": 11890781, "area": 27834, "languages": "Kirundi, French", "currency": "Burundian franc (Fr)", "timezone": "UTC+02:00", "cca2": "bi"}, {"cca3": "CPV", "ccn3": "132", "name": "Cape Verde", "flag": "🇨🇻", "region": "Africa", "subregion": "Western Africa", "capital": "Praia", "population": 555988, "area": 4033, "languages": "Portuguese", "currency": "Cape Verdean escudo (Esc)", "timezone": "UTC-01:00", "cca2": "cv"}, {"cca3": "KHM", "ccn3": "116", "name": "Cambodia", "flag": "🇰🇭", "region": "Asia", "subregion": "South-Eastern Asia", "capital": "Phnom Penh", "population": 16718965, "area": 181035, "languages": "Khmer", "currency": "Cambodian riel (៛)", "timezone": "UTC+07:00", "cca2": "kh"}, {"cca3": "CMR", "ccn3": "120", "name": "Cameroon", "flag": "🇨🇲", "region": "Africa", "subregion": "Middle Africa", "capital": "Yaoundé", "population": 26545864, "area": 475442, "languages": "English, French", "currency": "Central African CFA franc (Fr)", "timezone": "UTC+01:00", "cca2": "cm"}, {"cca3": "CAN", "ccn3": "124", "name": "Canada", "flag": "🇨🇦", "region": "Americas", "subregion": "Northern America", "capital": "Ottawa", "population": 38005238, "area": 9984670, "languages": "English, French", "currency": "Canadian dollar ($)", "timezone": "UTC-08:00", "cca2": "ca"}, {"cca3": "CAF", "ccn3": "140", "name": "Central African Republic", "flag": "🇨🇫", "region": "Africa", "subregion": "Middle Africa", "capital": "Bangui", "population": 4829764, "area": 622984, "languages": "French, Sango", "currency": "Central African CFA franc (Fr)", "timezone": "UTC+01:00", "cca2": "cf"}, {"cca3": "TCD", "ccn3": "148", "name": "Chad", "flag": "🇹🇩", "region": "Africa", "subregion": "Middle Africa", "capital": "N'Djamena", "population": 16914985, "area": 1284000, "languages": "Arabic, French", "currency": "Central African CFA franc (Fr)", "timezone": "UTC+01:00", "cca2": "td"}, {"cca3": "CHL", "ccn3": "152", "name": "Chile", "flag": "🇨🇱", "region": "Americas", "subregion": "South America", "capital": "Santiago", "population": 19116209, "area": 756102, "languages": "Spanish", "currency": "Chilean peso ($)", "timezone": "UTC-04:00", "cca2": "cl"}, {"cca3": "CHN", "ccn3": "156", "name": "China", "flag": "🇨🇳", "region": "Asia", "subregion": "Eastern Asia", "capital": "Beijing", "population": 1402112000, "area": 9706961, "languages": "Chinese", "currency": "Chinese yuan (¥)", "timezone": "UTC+08:00", "cca2": "cn"}, {"cca3": "COL", "ccn3": "170", "name": "Colombia", "flag": "🇨🇴", "region": "Americas", "subregion": "South America", "capital": "Bogotá", "population": 50882884, "area": 1141748, "languages": "Spanish", "currency": "Colombian peso ($)", "timezone": "UTC-05:00", "cca2": "co"}, {"cca3": "COM", "ccn3": "174", "name": "Comoros", "flag": "🇰🇲", "region": "Africa", "subregion": "Eastern Africa", "capital": "Moroni", "population": 869595, "area": 1862, "languages": "Arabic, French, Comorian", "currency": "Comorian franc (Fr)", "timezone": "UTC+03:00", "cca2": "km"}, {"cca3": "COD", "ccn3": "180", "name": "DR Congo", "flag": "🇨🇩", "region": "Africa", "subregion": "Middle Africa", "capital": "Kinshasa", "population": 99010212, "area": 2344858, "languages": "French", "currency": "Congolese franc (Fr)", "timezone": "UTC+01:00", "cca2": "cd"}, {"cca3": "COG", "ccn3": "178", "name": "Republic of the Congo", "flag": "🇨🇬", "region": "Africa", "subregion": "Middle Africa", "capital": "Brazzaville", "population": 5657013, "area": 342000, "languages": "French", "currency": "Central African CFA franc (Fr)", "timezone": "UTC+01:00", "cca2": "cg"}, {"cca3": "CRI", "ccn3": "188", "name": "Costa Rica", "flag": "🇨🇷", "region": "Americas", "subregion": "Central America", "capital": "San José", "population": 5094114, "area": 51100, "languages": "Spanish", "currency": "Costa Rican colón (₡)", "timezone": "UTC-06:00", "cca2": "cr"}, {"cca3": "HRV", "ccn3": "191", "name": "Croatia", "flag": "🇭🇷", "region": "Europe", "subregion": "Southern Europe", "capital": "Zagreb", "population": 3888529, "area": 56594, "languages": "Croatian", "currency": "Euro (€)", "timezone": "UTC+01:00", "cca2": "hr"}, {"cca3": "CUB", "ccn3": "192", "name": "Cuba", "flag": "🇨🇺", "region": "Americas", "subregion": "Caribbean", "capital": "Havana", "population": 11326616, "area": 109884, "languages": "Spanish", "currency": "Cuban peso ($)", "timezone": "UTC-05:00", "cca2": "cu"}, {"cca3": "CYP", "ccn3": "196", "name": "Cyprus", "flag": "🇨🇾", "region": "Asia", "subregion": "Western Asia", "capital": "Nicosia", "population": 1207361, "area": 9251, "languages": "Greek, Turkish", "currency": "Euro (€)", "timezone": "UTC+02:00", "cca2": "cy"}, {"cca3": "CZE", "ccn3": "203", "name": "Czech Republic", "flag": "🇨🇿", "region": "Europe", "subregion": "Central Europe", "capital": "Prague", "population": 10900555, "area": 78866, "languages": "Czech", "currency": "Czech koruna (Kč)", "timezone": "UTC+01:00", "cca2": "cz"}, {"cca3": "DNK", "ccn3": "208", "name": "Denmark", "flag": "🇩🇰", "region": "Europe", "subregion": "Northern Europe", "capital": "Copenhagen", "population": 5831404, "area": 43094, "languages": "Danish", "currency": "Danish krone (kr)", "timezone": "UTC+01:00", "cca2": "dk"}, {"cca3": "DJI", "ccn3": "262", "name": "Djibouti", "flag": "🇩🇯", "region": "Africa", "subregion": "Eastern Africa", "capital": "Djibouti", "population": 988002, "area": 23200, "languages": "Arabic, French", "currency": "Djiboutian franc (Fr)", "timezone": "UTC+03:00", "cca2": "dj"}, {"cca3": "DMA", "ccn3": "212", "name": "Dominica", "flag": "🇩🇲", "region": "Americas", "subregion": "Caribbean", "capital": "Roseau", "population": 71991, "area": 751, "languages": "English", "currency": "Eastern Caribbean dollar ($)", "timezone": "UTC-04:00", "cca2": "dm"}, {"cca3": "DOM", "ccn3": "214", "name": "Dominican Republic", "flag": "🇩🇴", "region": "Americas", "subregion": "Caribbean", "capital": "Santo Domingo", "population": 10847904, "area": 48671, "languages": "Spanish", "currency": "Dominican peso ($)", "timezone": "UTC-04:00", "cca2": "do"}, {"cca3": "ECU", "ccn3": "218", "name": "Ecuador", "flag": "🇪🇨", "region": "Americas", "subregion": "South America", "capital": "Quito", "population": 17643060, "area": 283561, "languages": "Spanish", "currency": "United States dollar ($)", "timezone": "UTC-05:00", "cca2": "ec"}, {"cca3": "EGY", "ccn3": "818", "name": "Egypt", "flag": "🇪🇬", "region": "Africa", "subregion": "Northern Africa", "capital": "Cairo", "population": 102334403, "area": 1002450, "languages": "Arabic", "currency": "Egyptian pound (£)", "timezone": "UTC+02:00", "cca2": "eg"}, {"cca3": "SLV", "ccn3": "222", "name": "El Salvador", "flag": "🇸🇻", "region": "Americas", "subregion": "Central America", "capital": "San Salvador", "population": 6486201, "area": 21041, "languages": "Spanish", "currency": "United States dollar ($)", "timezone": "UTC-06:00", "cca2": "sv"}, {"cca3": "GNQ", "ccn3": "226", "name": "Equatorial Guinea", "flag": "🇬🇶", "region": "Africa", "subregion": "Middle Africa", "capital": "Malabo", "population": 1402985, "area": 28051, "languages": "Spanish, French, Portuguese", "currency": "Central African CFA franc (Fr)", "timezone": "UTC+01:00", "cca2": "gq"}, {"cca3": "ERI", "ccn3": "232", "name": "Eritrea", "flag": "🇪🇷", "region": "Africa", "subregion": "Eastern Africa", "capital": "Asmara", "population": 3546427, "area": 117600, "languages": "Tigrinya, Arabic, English", "currency": "Eritrean nakfa (Nfk)", "timezone": "UTC+03:00", "cca2": "er"}, {"cca3": "EST", "ccn3": "233", "name": "Estonia", "flag": "🇪🇪", "region": "Europe", "subregion": "Northern Europe", "capital": "Tallinn", "population": 1331057, "area": 45228, "languages": "Estonian", "currency": "Euro (€)", "timezone": "UTC+02:00", "cca2": "ee"}, {"cca3": "SWZ", "ccn3": "748", "name": "Eswatini", "flag": "🇸🇿", "region": "Africa", "subregion": "Southern Africa", "capital": "Mbabane", "population": 1160164, "area": 17364, "languages": "Swati, English", "currency": "Swazi lilangeni (L)", "timezone": "UTC+02:00", "cca2": "sz"}, {"cca3": "ETH", "ccn3": "231", "name": "Ethiopia", "flag": "🇪🇹", "region": "Africa", "subregion": "Eastern Africa", "capital": "Addis Ababa", "population": 117876227, "area": 1104300, "languages": "Amharic", "currency": "Ethiopian birr (Br)", "timezone": "UTC+03:00", "cca2": "et"}, {"cca3": "FJI", "ccn3": "242", "name": "Fiji", "flag": "🇫🇯", "region": "Oceania", "subregion": "Melanesia", "capital": "Suva", "population": 896444, "area": 18272, "languages": "English, Fijian, Hindi", "currency": "Fijian dollar ($)", "timezone": "UTC+12:00", "cca2": "fj"}, {"cca3": "FIN", "ccn3": "246", "name": "Finland", "flag": "🇫🇮", "region": "Europe", "subregion": "Northern Europe", "capital": "Helsinki", "population": 5530719, "area": 338424, "languages": "Finnish, Swedish", "currency": "Euro (€)", "timezone": "UTC+02:00", "cca2": "fi"}, {"cca3": "FRA", "ccn3": "250", "name": "France", "flag": "🇫🇷", "region": "Europe", "subregion": "Western Europe", "capital": "Paris", "population": 67391582, "area": 551695, "languages": "French", "currency": "Euro (€)", "timezone": "UTC+01:00", "cca2": "fr"}, {"cca3": "GAB", "ccn3": "266", "name": "Gabon", "flag": "🇬🇦", "region": "Africa", "subregion": "Middle Africa", "capital": "Libreville", "population": 2225728, "area": 267668, "languages": "French", "currency": "Central African CFA franc (Fr)", "timezone": "UTC+01:00", "cca2": "ga"}, {"cca3": "GMB", "ccn3": "270", "name": "Gambia", "flag": "🇬🇲", "region": "Africa", "subregion": "Western Africa", "capital": "Banjul", "population": 2416664, "area": 11295, "languages": "English", "currency": "Gambian dalasi (D)", "timezone": "UTC+00:00", "cca2": "gm"}, {"cca3": "GEO", "ccn3": "268", "name": "Georgia", "flag": "🇬🇪", "region": "Asia", "subregion": "Western Asia", "capital": "Tbilisi", "population": 3714000, "area": 69700, "languages": "Georgian", "currency": "Georgian lari (₾)", "timezone": "UTC+04:00", "cca2": "ge"}, {"cca3": "DEU", "ccn3": "276", "name": "Germany", "flag": "🇩🇪", "region": "Europe", "subregion": "Western Europe", "capital": "Berlin", "population": 83240525, "area": 357114, "languages": "German", "currency": "Euro (€)", "timezone": "UTC+01:00", "cca2": "de"}, {"cca3": "GHA", "ccn3": "288", "name": "Ghana", "flag": "🇬🇭", "region": "Africa", "subregion": "Western Africa", "capital": "Accra", "population": 31072945, "area": 238533, "languages": "English", "currency": "Ghanaian cedi (₵)", "timezone": "UTC+00:00", "cca2": "gh"}, {"cca3": "GRC", "ccn3": "300", "name": "Greece", "flag": "🇬🇷", "region": "Europe", "subregion": "Southern Europe", "capital": "Athens", "population": 10718565, "area": 131990, "languages": "Greek", "currency": "Euro (€)", "timezone": "UTC+02:00", "cca2": "gr"}, {"cca3": "GRD", "ccn3": "308", "name": "Grenada", "flag": "🇬🇩", "region": "Americas", "subregion": "Caribbean", "capital": "St. George's", "population": 112519, "area": 344, "languages": "English", "currency": "Eastern Caribbean dollar ($)", "timezone": "UTC-04:00", "cca2": "gd"}, {"cca3": "GTM", "ccn3": "320", "name": "Guatemala", "flag": "🇬🇹", "region": "Americas", "subregion": "Central America", "capital": "Guatemala City", "population": 16858333, "area": 108889, "languages": "Spanish", "currency": "Guatemalan quetzal (Q)", "timezone": "UTC-06:00", "cca2": "gt"}, {"cca3": "GIN", "ccn3": "324", "name": "Guinea", "flag": "🇬🇳", "region": "Africa", "subregion": "Western Africa", "capital": "Conakry", "population": 13132792, "area": 245857, "languages": "French", "currency": "Guinean franc (Fr)", "timezone": "UTC+00:00", "cca2": "gn"}, {"cca3": "GNB", "ccn3": "624", "name": "Guinea-Bissau", "flag": "🇬🇼", "region": "Africa", "subregion": "Western Africa", "capital": "Bissau", "population": 1967998, "area": 36125, "languages": "Portuguese", "currency": "West African CFA franc (Fr)", "timezone": "UTC+00:00", "cca2": "gw"}, {"cca3": "GUY", "ccn3": "328", "name": "Guyana", "flag": "🇬🇾", "region": "Americas", "subregion": "South America", "capital": "Georgetown", "population": 786559, "area": 214969, "languages": "English", "currency": "Guyanese dollar ($)", "timezone": "UTC-04:00", "cca2": "gy"}, {"cca3": "HTI", "ccn3": "332", "name": "Haiti", "flag": "🇭🇹", "region": "Americas", "subregion": "Caribbean", "capital": "Port-au-Prince", "population": 11402533, "area": 27750, "languages": "French, Haitian Creole", "currency": "Haitian gourde (G)", "timezone": "UTC-05:00", "cca2": "ht"}, {"cca3": "HND", "ccn3": "340", "name": "Honduras", "flag": "🇭🇳", "region": "Americas", "subregion": "Central America", "capital": "Tegucigalpa", "population": 9904608, "area": 112492, "languages": "Spanish", "currency": "Honduran lempira (L)", "timezone": "UTC-06:00", "cca2": "hn"}, {"cca3": "HUN", "ccn3": "348", "name": "Hungary", "flag": "🇭🇺", "region": "Europe", "subregion": "Central Europe", "capital": "Budapest", "population": 9749763, "area": 93028, "languages": "Hungarian", "currency": "Hungarian forint (Ft)", "timezone": "UTC+01:00", "cca2": "hu"}, {"cca3": "ISL", "ccn3": "352", "name": "Iceland", "flag": "🇮🇸", "region": "Europe", "subregion": "Northern Europe", "capital": "Reykjavík", "population": 366425, "area": 103000, "languages": "Icelandic", "currency": "Icelandic króna (kr)", "timezone": "UTC+00:00", "cca2": "is"}, {"cca3": "IND", "ccn3": "356", "name": "India", "flag": "🇮🇳", "region": "Asia", "subregion": "Southern Asia", "capital": "New Delhi", "population": 1380004385, "area": 3287590, "languages": "Hindi, English", "currency": "Indian rupee (₹)", "timezone": "UTC+05:30", "cca2": "in"}, {"cca3": "IDN", "ccn3": "360", "name": "Indonesia", "flag": "🇮🇩", "region": "Asia", "subregion": "South-Eastern Asia", "capital": "Jakarta", "population": 273523621, "area": 1904569, "languages": "Indonesian", "currency": "Indonesian rupiah (Rp)", "timezone": "UTC+07:00", "cca2": "id"}, {"cca3": "IRN", "ccn3": "364", "name": "Iran", "flag": "🇮🇷", "region": "Asia", "subregion": "Southern Asia", "capital": "Tehran", "population": 83992953, "area": 1648195, "languages": "Persian", "currency": "Iranian rial (﷼)", "timezone": "UTC+03:30", "cca2": "ir"}, {"cca3": "IRQ", "ccn3": "368", "name": "Iraq", "flag": "🇮🇶", "region": "Asia", "subregion": "Western Asia", "capital": "Baghdad", "population": 40222503, "area": 438317, "languages": "Arabic, Kurdish", "currency": "Iraqi dinar (ع.د)", "timezone": "UTC+03:00", "cca2": "iq"}, {"cca3": "IRL", "ccn3": "372", "name": "Ireland", "flag": "🇮🇪", "region": "Europe", "subregion": "Northern Europe", "capital": "Dublin", "population": 4994724, "area": 70273, "languages": "Irish, English", "currency": "Euro (€)", "timezone": "UTC+00:00", "cca2": "ie"}, {"cca3": "ISR", "ccn3": "376", "name": "Israel", "flag": "🇮🇱", "region": "Asia", "subregion": "Western Asia", "capital": "Jerusalem", "population": 9216900, "area": 20770, "languages": "Hebrew, Arabic", "currency": "Israeli new shekel (₪)", "timezone": "UTC+02:00", "cca2": "il"}, {"cca3": "ITA", "ccn3": "380", "name": "Italy", "flag": "🇮🇹", "region": "Europe", "subregion": "Southern Europe", "capital": "Rome", "population": 59554023, "area": 301336, "languages": "Italian", "currency": "Euro (€)", "timezone": "UTC+01:00", "cca2": "it"}, {"cca3": "CIV", "ccn3": "384", "name": "Ivory Coast", "flag": "🇨🇮", "region": "Africa", "subregion": "Western Africa", "capital": "Yamoussoukro", "population": 26378275, "area": 322463, "languages": "French", "currency": "West African CFA franc (Fr)", "timezone": "UTC+00:00", "cca2": "ci"}, {"cca3": "JAM", "ccn3": "388", "name": "Jamaica", "flag": "🇯🇲", "region": "Americas", "subregion": "Caribbean", "capital": "Kingston", "population": 2961161, "area": 10991, "languages": "English", "currency": "Jamaican dollar ($)", "timezone": "UTC-05:00", "cca2": "jm"}, {"cca3": "JPN", "ccn3": "392", "name": "Japan", "flag": "🇯🇵", "region": "Asia", "subregion": "Eastern Asia", "capital": "Tokyo", "population": 125836021, "area": 377930, "languages": "Japanese", "currency": "Japanese yen (¥)", "timezone": "UTC+09:00", "cca2": "jp"}, {"cca3": "JOR", "ccn3": "400", "name": "Jordan", "flag": "🇯🇴", "region": "Asia", "subregion": "Western Asia", "capital": "Amman", "population": 10203140, "area": 89342, "languages": "Arabic", "currency": "Jordanian dinar (د.ا)", "timezone": "UTC+03:00", "cca2": "jo"}, {"cca3": "KAZ", "ccn3": "398", "name": "Kazakhstan", "flag": "🇰🇿", "region": "Asia", "subregion": "Central Asia", "capital": "Nur-Sultan", "population": 18754440, "area": 2724900, "languages": "Kazakh, Russian", "currency": "Kazakhstani tenge (₸)", "timezone": "UTC+06:00", "cca2": "kz"}, {"cca3": "KEN", "ccn3": "404", "name": "Kenya", "flag": "🇰🇪", "region": "Africa", "subregion": "Eastern Africa", "capital": "Nairobi", "population": 53771296, "area": 580367, "languages": "Swahili, English", "currency": "Kenyan shilling (Ksh)", "timezone": "UTC+03:00", "cca2": "ke"}, {"cca3": "KIR", "ccn3": "296", "name": "Kiribati", "flag": "🇰🇮", "region": "Oceania", "subregion": "Micronesia", "capital": "South Tarawa", "population": 119446, "area": 811, "languages": "English, Gilbertese", "currency": "Australian dollar ($)", "timezone": "UTC+12:00", "cca2": "ki"}, {"cca3": "PRK", "ccn3": "408", "name": "North Korea", "flag": "🇰🇵", "region": "Asia", "subregion": "Eastern Asia", "capital": "Pyongyang", "population": 25778816, "area": 120538, "languages": "Korean", "currency": "North Korean won (₩)", "timezone": "UTC+09:00", "cca2": "kp"}, {"cca3": "KOR", "ccn3": "410", "name": "South Korea", "flag": "🇰🇷", "region": "Asia", "subregion": "Eastern Asia", "capital": "Seoul", "population": 51780579, "area": 100210, "languages": "Korean", "currency": "South Korean won (₩)", "timezone": "UTC+09:00", "cca2": "kr"}, {"cca3": "KWT", "ccn3": "414", "name": "Kuwait", "flag": "🇰🇼", "region": "Asia", "subregion": "Western Asia", "capital": "Kuwait City", "population": 4270563, "area": 17818, "languages": "Arabic", "currency": "Kuwaiti dinar (د.ك)", "timezone": "UTC+03:00", "cca2": "kw"}, {"cca3": "KGZ", "ccn3": "417", "name": "Kyrgyzstan", "flag": "🇰🇬", "region": "Asia", "subregion": "Central Asia", "capital": "Bishkek", "population": 6591600, "area": 199951, "languages": "Kyrgyz, Russian", "currency": "Kyrgyzstani som (с)", "timezone": "UTC+06:00", "cca2": "kg"}, {"cca3": "LAO", "ccn3": "418", "name": "Laos", "flag": "🇱🇦", "region": "Asia", "subregion": "South-Eastern Asia", "capital": "Vientiane", "population": 7275556, "area": 236800, "languages": "Lao", "currency": "Lao kip (₭)", "timezone": "UTC+07:00", "cca2": "la"}, {"cca3": "LVA", "ccn3": "428", "name": "Latvia", "flag": "🇱🇻", "region": "Europe", "subregion": "Northern Europe", "capital": "Riga", "population": 1901548, "area": 64589, "languages": "Latvian", "currency": "Euro (€)", "timezone": "UTC+02:00", "cca2": "lv"}, {"cca3": "LBN", "ccn3": "422", "name": "Lebanon", "flag": "🇱🇧", "region": "Asia", "subregion": "Western Asia", "capital": "Beirut", "population": 6825442, "area": 10452, "languages": "Arabic, French", "currency": "Lebanese pound (ل.ل)", "timezone": "UTC+02:00", "cca2": "lb"}, {"cca3": "LSO", "ccn3": "426", "name": "Lesotho", "flag": "🇱🇸", "region": "Africa", "subregion": "Southern Africa", "capital": "Maseru", "population": 2142252, "area": 30355, "languages": "Sotho, English", "currency": "Lesotho loti (L)", "timezone": "UTC+02:00", "cca2": "ls"}, {"cca3": "LBR", "ccn3": "430", "name": "Liberia", "flag": "🇱🇷", "region": "Africa", "subregion": "Western Africa", "capital": "Monrovia", "population": 5057677, "area": 111369, "languages": "English", "currency": "Liberian dollar ($)", "timezone": "UTC+00:00", "cca2": "lr"}, {"cca3": "LBY", "ccn3": "434", "name": "Libya", "flag": "🇱🇾", "region": "Africa", "subregion": "Northern Africa", "capital": "Tripoli", "population": 6871287, "area": 1759540, "languages": "Arabic", "currency": "Libyan dinar (ل.د)", "timezone": "UTC+02:00", "cca2": "ly"}, {"cca3": "LIE", "ccn3": "438", "name": "Liechtenstein", "flag": "🇱🇮", "region": "Europe", "subregion": "Western Europe", "capital": "Vaduz", "population": 38137, "area": 160, "languages": "German", "currency": "Swiss franc (Fr)", "timezone": "UTC+01:00", "cca2": "li"}, {"cca3": "LTU", "ccn3": "440", "name": "Lithuania", "flag": "🇱🇹", "region": "Europe", "subregion": "Northern Europe", "capital": "Vilnius", "population": 2794700, "area": 65300, "languages": "Lithuanian", "currency": "Euro (€)", "timezone": "UTC+02:00", "cca2": "lt"}, {"cca3": "LUX", "ccn3": "442", "name": "Luxembourg", "flag": "🇱🇺", "region": "Europe", "subregion": "Western Europe", "capital": "Luxembourg", "population": 632275, "area": 2586, "languages": "Luxembourgish, French, German", "currency": "Euro (€)", "timezone": "UTC+01:00", "cca2": "lu"}, {"cca3": "MDG", "ccn3": "450", "name": "Madagascar", "flag": "🇲🇬", "region": "Africa", "subregion": "Eastern Africa", "capital": "Antananarivo", "population": 27691019, "area": 587041, "languages": "Malagasy, French", "currency": "Malagasy ariary (Ar)", "timezone": "UTC+03:00", "cca2": "mg"}, {"cca3": "MWI", "ccn3": "454", "name": "Malawi", "flag": "🇲🇼", "region": "Africa", "subregion": "Eastern Africa", "capital": "Lilongwe", "population": 19129955, "area": 118484, "languages": "English, Chewa", "currency": "Malawian kwacha (MK)", "timezone": "UTC+02:00", "cca2": "mw"}, {"cca3": "MYS", "ccn3": "458", "name": "Malaysia", "flag": "🇲🇾", "region": "Asia", "subregion": "South-Eastern Asia", "capital": "Kuala Lumpur", "population": 32365999, "area": 329847, "languages": "Malay", "currency": "Malaysian ringgit (RM)", "timezone": "UTC+08:00", "cca2": "my"}, {"cca3": "MDV", "ccn3": "462", "name": "Maldives", "flag": "🇲🇻", "region": "Asia", "subregion": "Southern Asia", "capital": "Malé", "population": 540542, "area": 300, "languages": "Maldivian", "currency": "Maldivian rufiyaa (ރ.)", "timezone": "UTC+05:00", "cca2": "mv"}, {"cca3": "MLI", "ccn3": "466", "name": "Mali", "flag": "🇲🇱", "region": "Africa", "subregion": "Western Africa", "capital": "Bamako", "population": 20250834, "area": 1240192, "languages": "French", "currency": "West African CFA franc (Fr)", "timezone": "UTC+00:00", "cca2": "ml"}, {"cca3": "MLT", "ccn3": "470", "name": "Malta", "flag": "🇲🇹", "region": "Europe", "subregion": "Southern Europe", "capital": "Valletta", "population": 525285, "area": 316, "languages": "Maltese, English", "currency": "Euro (€)", "timezone": "UTC+01:00", "cca2": "mt"}, {"cca3": "MHL", "ccn3": "584", "name": "Marshall Islands", "flag": "🇲🇭", "region": "Oceania", "subregion": "Micronesia", "capital": "Majuro", "population": 42050, "area": 181, "languages": "Marshallese, English", "currency": "United States dollar ($)", "timezone": "UTC+12:00", "cca2": "mh"}, {"cca3": "MRT", "ccn3": "478", "name": "Mauritania", "flag": "🇲🇷", "region": "Africa", "subregion": "Western Africa", "capital": "Nouakchott", "population": 4614974, "area": 1030700, "languages": "Arabic", "currency": "Mauritanian ouguiya (UM)", "timezone": "UTC+00:00", "cca2": "mr"}, {"cca3": "MUS", "ccn3": "480", "name": "Mauritius", "flag": "🇲🇺", "region": "Africa", "subregion": "Eastern Africa", "capital": "Port Louis", "population": 1265711, "area": 2040, "languages": "English, French, Mauritian Creole", "currency": "Mauritian rupee (₨)", "timezone": "UTC+04:00", "cca2": "mu"}, {"cca3": "MEX", "ccn3": "484", "name": "Mexico", "flag": "🇲🇽", "region": "Americas", "subregion": "North America", "capital": "Mexico City", "population": 128932753, "area": 1964375, "languages": "Spanish", "currency": "Mexican peso ($)", "timezone": "UTC-06:00", "cca2": "mx"}, {"cca3": "FSM", "ccn3": "583", "name": "Micronesia", "flag": "🇫🇲", "region": "Oceania", "subregion": "Micronesia", "capital": "Palikir", "population": 115021, "area": 702, "languages": "English", "currency": "United States dollar ($)", "timezone": "UTC+11:00", "cca2": "fm"}, {"cca3": "MDA", "ccn3": "498", "name": "Moldova", "flag": "🇲🇩", "region": "Europe", "subregion": "Eastern Europe", "capital": "Chișinău", "population": 2617820, "area": 33846, "languages": "Romanian", "currency": "Moldovan leu (L)", "timezone": "UTC+02:00", "cca2": "md"}, {"cca3": "MCO", "ccn3": "492", "name": "Monaco", "flag": "🇲🇨", "region": "Europe", "subregion": "Western Europe", "capital": "Monaco", "population": 39242, "area": 2, "languages": "French", "currency": "Euro (€)", "timezone": "UTC+01:00", "cca2": "mc"}, {"cca3": "MNG", "ccn3": "496", "name": "Mongolia", "flag": "🇲🇳", "region": "Asia", "subregion": "Eastern Asia", "capital": "Ulaanbaatar", "population": 3278292, "area": 1564110, "languages": "Mongolian", "currency": "Mongolian tögrög (₮)", "timezone": "UTC+08:00", "cca2": "mn"}, {"cca3": "MNE", "ccn3": "499", "name": "Montenegro", "flag": "🇲🇪", "region": "Europe", "subregion": "Southern Europe", "capital": "Podgorica", "population": 621718, "area": 13812, "languages": "Serbian", "currency": "Euro (€)", "timezone": "UTC+01:00", "cca2": "me"}, {"cca3": "MAR", "ccn3": "504", "name": "Morocco", "flag": "🇲🇦", "region": "Africa", "subregion": "Northern Africa", "capital": "Rabat", "population": 36910558, "area": 446550, "languages": "Arabic, Berber", "currency": "Moroccan dirham (د.م.)", "timezone": "UTC+01:00", "cca2": "ma"}, {"cca3": "MOZ", "ccn3": "508", "name": "Mozambique", "flag": "🇲🇿", "region": "Africa", "subregion": "Eastern Africa", "capital": "Maputo", "population": 31255435, "area": 801590, "languages": "Portuguese", "currency": "Mozambican metical (MT)", "timezone": "UTC+02:00", "cca2": "mz"}, {"cca3": "MMR", "ccn3": "104", "name": "Myanmar", "flag": "🇲🇲", "region": "Asia", "subregion": "South-Eastern Asia", "capital": "Naypyidaw", "population": 54409794, "area": 676578, "languages": "Burmese", "currency": "Burmese kyat (K)", "timezone": "UTC+06:30", "cca2": "mm"}, {"cca3": "NAM", "ccn3": "516", "name": "Namibia", "flag": "🇳🇦", "region": "Africa", "subregion": "Southern Africa", "capital": "Windhoek", "population": 2530592, "area": 825615, "languages": "English", "currency": "Namibian dollar ($)", "timezone": "UTC+02:00", "cca2": "na"}, {"cca3": "NRU", "ccn3": "520", "name": "Nauru", "flag": "🇳🇷", "region": "Oceania", "subregion": "Micronesia", "capital": "Yaren", "population": 10824, "area": 21, "languages": "Nauruan, English", "currency": "Australian dollar ($)", "timezone": "UTC+12:00", "cca2": "nr"}, {"cca3": "NPL", "ccn3": "524", "name": "Nepal", "flag": "🇳🇵", "region": "Asia", "subregion": "Southern Asia", "capital": "Kathmandu", "population": 29136808, "area": 147181, "languages": "Nepali", "currency": "Nepalese rupee (₨)", "timezone": "UTC+05:45", "cca2": "np"}, {"cca3": "NLD", "ccn3": "528", "name": "Netherlands", "flag": "🇳🇱", "region": "Europe", "subregion": "Western Europe", "capital": "Amsterdam", "population": 17441139, "area": 41543, "languages": "Dutch", "currency": "Euro (€)", "timezone": "UTC+01:00", "cca2": "nl"}, {"cca3": "NZL", "ccn3": "554", "name": "New Zealand", "flag": "🇳🇿", "region": "Oceania", "subregion": "Australia and New Zealand", "capital": "Wellington", "population": 5084300, "area": 270467, "languages": "English, Māori", "currency": "New Zealand dollar ($)", "timezone": "UTC+12:00", "cca2": "nz"}, {"cca3": "NIC", "ccn3": "558", "name": "Nicaragua", "flag": "🇳🇮", "region": "Americas", "subregion": "Central America", "capital": "Managua", "population": 6624554, "area": 130373, "languages": "Spanish", "currency": "Nicaraguan córdoba (C$)", "timezone": "UTC-06:00", "cca2": "ni"}, {"cca3": "NER", "ccn3": "562", "name": "Niger", "flag": "🇳🇪", "region": "Africa", "subregion": "Western Africa", "capital": "Niamey", "population": 24206636, "area": 1267000, "languages": "French", "currency": "West African CFA franc (Fr)", "timezone": "UTC+01:00", "cca2": "ne"}, {"cca3": "NGA", "ccn3": "566", "name": "Nigeria", "flag": "🇳🇬", "region": "Africa", "subregion": "Western Africa", "capital": "Abuja", "population": 206139587, "area": 923768, "languages": "English", "currency": "Nigerian naira (₦)", "timezone": "UTC+01:00", "cca2": "ng"}, {"cca3": "MKD", "ccn3": "807", "name": "North Macedonia", "flag": "🇲🇰", "region": "Europe", "subregion": "Southern Europe", "capital": "Skopje", "population": 2077132, "area": 25713, "languages": "Macedonian, Albanian", "currency": "Macedonian denar (den)", "timezone": "UTC+01:00", "cca2": "mk"}, {"cca3": "NOR", "ccn3": "578", "name": "Norway", "flag": "🇳🇴", "region": "Europe", "subregion": "Northern Europe", "capital": "Oslo", "population": 5379475, "area": 385207, "languages": "Norwegian", "currency": "Norwegian krone (kr)", "timezone": "UTC+01:00", "cca2": "no"}, {"cca3": "OMN", "ccn3": "512", "name": "Oman", "flag": "🇴🇲", "region": "Asia", "subregion": "Western Asia", "capital": "Muscat", "population": 4520471, "area": 309500, "languages": "Arabic", "currency": "Omani rial (ر.ع.)", "timezone": "UTC+04:00", "cca2": "om"}, {"cca3": "PAK", "ccn3": "586", "name": "Pakistan", "flag": "🇵🇰", "region": "Asia", "subregion": "Southern Asia", "capital": "Islamabad", "population": 220892331, "area": 881913, "languages": "Urdu, English", "currency": "Pakistani rupee (₨)", "timezone": "UTC+05:00", "cca2": "pk"}, {"cca3": "PLW", "ccn3": "585", "name": "Palau", "flag": "🇵🇼", "region": "Oceania", "subregion": "Micronesia", "capital": "Ngerulmud", "population": 18092, "area": 459, "languages": "Palauan, English", "currency": "United States dollar ($)", "timezone": "UTC+09:00", "cca2": "pw"}, {"cca3": "PAN", "ccn3": "591", "name": "Panama", "flag": "🇵🇦", "region": "Americas", "subregion": "Central America", "capital": "Panama City", "population": 4351267, "area": 75417, "languages": "Spanish", "currency": "Panamanian balboa (B/.)", "timezone": "UTC-05:00", "cca2": "pa"}, {"cca3": "PNG", "ccn3": "598", "name": "Papua New Guinea", "flag": "🇵🇬", "region": "Oceania", "subregion": "Melanesia", "capital": "Port Moresby", "population": 8947027, "area": 462840, "languages": "English, Tok Pisin, Hiri Motu", "currency": "Papua New Guinean kina (K)", "timezone": "UTC+10:00", "cca2": "pg"}, {"cca3": "PRY", "ccn3": "600", "name": "Paraguay", "flag": "🇵🇾", "region": "Americas", "subregion": "South America", "capital": "Asunción", "population": 7132538, "area": 406752, "languages": "Spanish, Guaraní", "currency": "Paraguayan guaraní (₲)", "timezone": "UTC-04:00", "cca2": "py"}, {"cca3": "PER", "ccn3": "604", "name": "Peru", "flag": "🇵🇪", "region": "Americas", "subregion": "South America", "capital": "Lima", "population": 32971846, "area": 1285216, "languages": "Spanish", "currency": "Peruvian sol (S/.)", "timezone": "UTC-05:00", "cca2": "pe"}, {"cca3": "PHL", "ccn3": "608", "name": "Philippines", "flag": "🇵🇭", "region": "Asia", "subregion": "South-Eastern Asia", "capital": "Manila", "population": 109581085, "area": 342353, "languages": "Filipino, English", "currency": "Philippine peso (₱)", "timezone": "UTC+08:00", "cca2": "ph"}, {"cca3": "POL", "ccn3": "616", "name": "Poland", "flag": "🇵🇱", "region": "Europe", "subregion": "Central Europe", "capital": "Warsaw", "population": 37950802, "area": 312696, "languages": "Polish", "currency": "Polish złoty (zł)", "timezone": "UTC+01:00", "cca2": "pl"}, {"cca3": "PRT", "ccn3": "620", "name": "Portugal", "flag": "🇵🇹", "region": "Europe", "subregion": "Southern Europe", "capital": "Lisbon", "population": 10305564, "area": 92212, "languages": "Portuguese", "currency": "Euro (€)", "timezone": "UTC+00:00", "cca2": "pt"}, {"cca3": "QAT", "ccn3": "634", "name": "Qatar", "flag": "🇶🇦", "region": "Asia", "subregion": "Western Asia", "capital": "Doha", "population": 2881060, "area": 11586, "languages": "Arabic", "currency": "Qatari riyal (ر.ق)", "timezone": "UTC+03:00", "cca2": "qa"}, {"cca3": "ROU", "ccn3": "642", "name": "Romania", "flag": "🇷🇴", "region": "Europe", "subregion": "Eastern Europe", "capital": "Bucharest", "population": 19237682, "area": 238397, "languages": "Romanian", "currency": "Romanian leu (lei)", "timezone": "UTC+02:00", "cca2": "ro"}, {"cca3": "RUS", "ccn3": "643", "name": "Russia", "flag": "🇷🇺", "region": "Europe", "subregion": "Eastern Europe", "capital": "Moscow", "population": 144104080, "area": 17098242, "languages": "Russian", "currency": "Russian ruble (₽)", "timezone": "UTC+03:00", "cca2": "ru"}, {"cca3": "RWA", "ccn3": "646", "name": "Rwanda", "flag": "🇷🇼", "region": "Africa", "subregion": "Eastern Africa", "capital": "Kigali", "population": 12952209, "area": 26338, "languages": "Kinyarwanda, English, French", "currency": "Rwandan franc (Fr)", "timezone": "UTC+02:00", "cca2": "rw"}, {"cca3": "KNA", "ccn3": "659", "name": "Saint Kitts and Nevis", "flag": "🇰🇳", "region": "Americas", "subregion": "Caribbean", "capital": "Basseterre", "population": 53192, "area": 261, "languages": "English", "currency": "Eastern Caribbean dollar ($)", "timezone": "UTC-04:00", "cca2": "kn"}, {"cca3": "LCA", "ccn3": "662", "name": "Saint Lucia", "flag": "🇱🇨", "region": "Americas", "subregion": "Caribbean", "capital": "Castries", "population": 183629, "area": 616, "languages": "English", "currency": "Eastern Caribbean dollar ($)", "timezone": "UTC-04:00", "cca2": "lc"}, {"cca3": "VCT", "ccn3": "670", "name": "Saint Vincent and the Grenadines", "flag": "🇻🇨", "region": "Americas", "subregion": "Caribbean", "capital": "Kingstown", "population": 110947, "area": 389, "languages": "English", "currency": "Eastern Caribbean dollar ($)", "timezone": "UTC-04:00", "cca2": "vc"}, {"cca3": "WSM", "ccn3": "882", "name": "Samoa", "flag": "🇼🇸", "region": "Oceania", "subregion": "Polynesia", "capital": "Apia", "population": 198410, "area": 2842, "languages": "Samoan, English", "currency": "Samoan tālā (T)", "timezone": "UTC+13:00", "cca2": "ws"}, {"cca3": "SMR", "ccn3": "674", "name": "San Marino", "flag": "🇸🇲", "region": "Europe", "subregion": "Southern Europe", "capital": "City of San Marino", "population": 33938, "area": 61, "languages": "Italian", "currency": "Euro (€)", "timezone": "UTC+01:00", "cca2": "sm"}, {"cca3": "STP", "ccn3": "678", "name": "São Tomé and Príncipe", "flag": "🇸🇹", "region": "Africa", "subregion": "Middle Africa", "capital": "São Tomé", "population": 219161, "area": 964, "languages": "Portuguese", "currency": "São Tomé and Príncipe dobra (Db)", "timezone": "UTC+00:00", "cca2": "st"}, {"cca3": "SAU", "ccn3": "682", "name": "Saudi Arabia", "flag": "🇸🇦", "region": "Asia", "subregion": "Western Asia", "capital": "Riyadh", "population": 34813867, "area": 2149690, "languages": "Arabic", "currency": "Saudi riyal (﷼)", "timezone": "UTC+03:00", "cca2": "sa"}, {"cca3": "SEN", "ccn3": "686", "name": "Senegal", "flag": "🇸🇳", "region": "Africa", "subregion": "Western Africa", "capital": "Dakar", "population": 16743930, "area": 196722, "languages": "French", "currency": "West African CFA franc (Fr)", "timezone": "UTC+00:00", "cca2": "sn"}, {"cca3": "SRB", "ccn3": "688", "name": "Serbia", "flag": "🇷🇸", "region": "Europe", "subregion": "Southern Europe", "capital": "Belgrade", "population": 6804596, "area": 77474, "languages": "Serbian", "currency": "Serbian dinar (din)", "timezone": "UTC+01:00", "cca2": "rs"}, {"cca3": "SYC", "ccn3": "690", "name": "Seychelles", "flag": "🇸🇨", "region": "Africa", "subregion": "Eastern Africa", "capital": "Victoria", "population": 98462, "area": 452, "languages": "Seychellois Creole, English, French", "currency": "Seychellois rupee (₨)", "timezone": "UTC+04:00", "cca2": "sc"}, {"cca3": "SLE", "ccn3": "694", "name": "Sierra Leone", "flag": "🇸🇱", "region": "Africa", "subregion": "Western Africa", "capital": "Freetown", "population": 7976985, "area": 71740, "languages": "English", "currency": "Sierra Leonean leone (Le)", "timezone": "UTC+00:00", "cca2": "sl"}, {"cca3": "SGP", "ccn3": "702", "name": "Singapore", "flag": "🇸🇬", "region": "Asia", "subregion": "South-Eastern Asia", "capital": "Singapore", "population": 5685807, "area": 710, "languages": "English, Malay, Tamil, Chinese", "currency": "Singapore dollar ($)", "timezone": "UTC+08:00", "cca2": "sg"}, {"cca3": "SVK", "ccn3": "703", "name": "Slovakia", "flag": "🇸🇰", "region": "Europe", "subregion": "Central Europe", "capital": "Bratislava", "population": 5459642, "area": 49035, "languages": "Slovak", "currency": "Euro (€)", "timezone": "UTC+01:00", "cca2": "sk"}, {"cca3": "SVN", "ccn3": "705", "name": "Slovenia", "flag": "🇸🇮", "region": "Europe", "subregion": "Central Europe", "capital": "Ljubljana", "population": 2100126, "area": 20273, "languages": "Slovenian", "currency": "Euro (€)", "timezone": "UTC+01:00", "cca2": "si"}, {"cca3": "SLB", "ccn3": "090", "name": "Solomon Islands", "flag": "🇸🇧", "region": "Oceania", "subregion": "Melanesia", "capital": "Honiara", "population": 686878, "area": 28896, "languages": "English", "currency": "Solomon Islands dollar ($)", "timezone": "UTC+11:00", "cca2": "sb"}, {"cca3": "SOM", "ccn3": "706", "name": "Somalia", "flag": "🇸🇴", "region": "Africa", "subregion": "Eastern Africa", "capital": "Mogadishu", "population": 15893219, "area": 637657, "languages": "Somali, Arabic", "currency": "Somali shilling (Sh)", "timezone": "UTC+03:00", "cca2": "so"}, {"cca3": "ZAF", "ccn3": "710", "name": "South Africa", "flag": "🇿🇦", "region": "Africa", "subregion": "Southern Africa", "capital": "Pretoria", "population": 59308690, "area": 1221037, "languages": "Zulu, Xhosa, Afrikaans, English", "currency": "South African rand (R)", "timezone": "UTC+02:00", "cca2": "za"}, {"cca3": "SSD", "ccn3": "728", "name": "South Sudan", "flag": "🇸🇸", "region": "Africa", "subregion": "Eastern Africa", "capital": "Juba", "population": 11193729, "area": 619745, "languages": "English", "currency": "South Sudanese pound (£)", "timezone": "UTC+03:00", "cca2": "ss"}, {"cca3": "ESP", "ccn3": "724", "name": "Spain", "flag": "🇪🇸", "region": "Europe", "subregion": "Southern Europe", "capital": "Madrid", "population": 47351567, "area": 505992, "languages": "Spanish", "currency": "Euro (€)", "timezone": "UTC+01:00", "cca2": "es"}, {"cca3": "LKA", "ccn3": "144", "name": "Sri Lanka", "flag": "🇱🇰", "region": "Asia", "subregion": "Southern Asia", "capital": "Sri Jayawardenepura Kotte", "population": 21919000, "area": 65610, "languages": "Sinhala, Tamil", "currency": "Sri Lankan rupee (Rs)", "timezone": "UTC+05:30", "cca2": "lk"}, {"cca3": "SDN", "ccn3": "729", "name": "Sudan", "flag": "🇸🇩", "region": "Africa", "subregion": "Northern Africa", "capital": "Khartoum", "population": 43849269, "area": 1886068, "languages": "Arabic, English", "currency": "Sudanese pound (£)", "timezone": "UTC+03:00", "cca2": "sd"}, {"cca3": "SUR", "ccn3": "740", "name": "Suriname", "flag": "🇸🇷", "region": "Americas", "subregion": "South America", "capital": "Paramaribo", "population": 586634, "area": 163820, "languages": "Dutch", "currency": "Surinamese dollar ($)", "timezone": "UTC-03:00", "cca2": "sr"}, {"cca3": "SWE", "ccn3": "752", "name": "Sweden", "flag": "🇸🇪", "region": "Europe", "subregion": "Northern Europe", "capital": "Stockholm", "population": 10353442, "area": 450295, "languages": "Swedish", "currency": "Swedish krona (kr)", "timezone": "UTC+01:00", "cca2": "se"}, {"cca3": "CHE", "ccn3": "756", "name": "Switzerland", "flag": "🇨🇭", "region": "Europe", "subregion": "Western Europe", "capital": "Bern", "population": 8654622, "area": 41285, "languages": "German, French, Italian, Romansh", "currency": "Swiss franc (Fr)", "timezone": "UTC+01:00", "cca2": "ch"}, {"cca3": "SYR", "ccn3": "760", "name": "Syria", "flag": "🇸🇾", "region": "Asia", "subregion": "Western Asia", "capital": "Damascus", "population": 21324000, "area": 185180, "languages": "Arabic", "currency": "Syrian pound (£)", "timezone": "UTC+03:00", "cca2": "sy"}, {"cca3": "TWN", "ccn3": "158", "name": "Taiwan", "flag": "🇹🇼", "region": "Asia", "subregion": "Eastern Asia", "capital": "Taipei", "population": 23503349, "area": 36193, "languages": "Chinese", "currency": "New Taiwan dollar ($)", "timezone": "UTC+08:00", "cca2": "tw"}, {"cca3": "TJK", "ccn3": "762", "name": "Tajikistan", "flag": "🇹🇯", "region": "Asia", "subregion": "Central Asia", "capital": "Dushanbe", "population": 9537642, "area": 143100, "languages": "Tajik, Russian", "currency": "Tajikistani somoni (SM)", "timezone": "UTC+05:00", "cca2": "tj"}, {"cca3": "TZA", "ccn3": "834", "name": "Tanzania", "flag": "🇹🇿", "region": "Africa", "subregion": "Eastern Africa", "capital": "Dodoma", "population": 59734213, "area": 945087, "languages": "Swahili, English", "currency": "Tanzanian shilling (Sh)", "timezone": "UTC+03:00", "cca2": "tz"}, {"cca3": "THA", "ccn3": "764", "name": "Thailand", "flag": "🇹🇭", "region": "Asia", "subregion": "South-Eastern Asia", "capital": "Bangkok", "population": 69950850, "area": 513120, "languages": "Thai", "currency": "Thai baht (฿)", "timezone": "UTC+07:00", "cca2": "th"}, {"cca3": "TLS", "ccn3": "626", "name": "Timor-Leste", "flag": "🇹🇱", "region": "Asia", "subregion": "South-Eastern Asia", "capital": "Dili", "population": 1318442, "area": 14874, "languages": "Tetum, Portuguese", "currency": "United States dollar ($)", "timezone": "UTC+09:00", "cca2": "tl"}, {"cca3": "TGO", "ccn3": "768", "name": "Togo", "flag": "🇹🇬", "region": "Africa", "subregion": "Western Africa", "capital": "Lomé", "population": 8278737, "area": 56785, "languages": "French", "currency": "West African CFA franc (Fr)", "timezone": "UTC+00:00", "cca2": "tg"}, {"cca3": "TON", "ccn3": "776", "name": "Tonga", "flag": "🇹🇴", "region": "Oceania", "subregion": "Polynesia", "capital": "Nuku'alofa", "population": 105697, "area": 747, "languages": "Tongan, English", "currency": "Tongan paʻanga (T$)", "timezone": "UTC+13:00", "cca2": "to"}, {"cca3": "TTO", "ccn3": "780", "name": "Trinidad and Tobago", "flag": "🇹🇹", "region": "Americas", "subregion": "Caribbean", "capital": "Port of Spain", "population": 1399491, "area": 5130, "languages": "English", "currency": "Trinidad and Tobago dollar ($)", "timezone": "UTC-04:00", "cca2": "tt"}, {"cca3": "TUN", "ccn3": "788", "name": "Tunisia", "flag": "🇹🇳", "region": "Africa", "subregion": "Northern Africa", "capital": "Tunis", "population": 11818618, "area": 163610, "languages": "Arabic", "currency": "Tunisian dinar (د.ت)", "timezone": "UTC+01:00", "cca2": "tn"}, {"cca3": "TUR", "ccn3": "792", "name": "Turkey", "flag": "🇹🇷", "region": "Asia", "subregion": "Western Asia", "capital": "Ankara", "population": 84339067, "area": 783562, "languages": "Turkish", "currency": "Turkish lira (₺)", "timezone": "UTC+03:00", "cca2": "tr"}, {"cca3": "TKM", "ccn3": "795", "name": "Turkmenistan", "flag": "🇹🇲", "region": "Asia", "subregion": "Central Asia", "capital": "Ashgabat", "population": 6031187, "area": 488100, "languages": "Turkmen, Russian", "currency": "Turkmenistan manat (T)", "timezone": "UTC+05:00", "cca2": "tm"}, {"cca3": "TUV", "ccn3": "798", "name": "Tuvalu", "flag": "🇹🇻", "region": "Oceania", "subregion": "Polynesia", "capital": "Funafuti", "population": 11792, "area": 26, "languages": "Tuvaluan, English", "currency": "Australian dollar ($)", "timezone": "UTC+12:00", "cca2": "tv"}, {"cca3": "UGA", "ccn3": "800", "name": "Uganda", "flag": "🇺🇬", "region": "Africa", "subregion": "Eastern Africa", "capital": "Kampala", "population": 45741000, "area": 241550, "languages": "Swahili, English", "currency": "Ugandan shilling (Sh)", "timezone": "UTC+03:00", "cca2": "ug"}, {"cca3": "UKR", "ccn3": "804", "name": "Ukraine", "flag": "🇺🇦", "region": "Europe", "subregion": "Eastern Europe", "capital": "Kyiv", "population": 44134693, "area": 603550, "languages": "Ukrainian", "currency": "Ukrainian hryvnia (₴)", "timezone": "UTC+02:00", "cca2": "ua"}, {"cca3": "ARE", "ccn3": "784", "name": "United Arab Emirates", "flag": "🇦🇪", "region": "Asia", "subregion": "Western Asia", "capital": "Abu Dhabi", "population": 9890400, "area": 83600, "languages": "Arabic", "currency": "UAE dirham (د.إ)", "timezone": "UTC+04:00", "cca2": "ae"}, {"cca3": "GBR", "ccn3": "826", "name": "United Kingdom", "flag": "🇬🇧", "region": "Europe", "subregion": "Northern Europe", "capital": "London", "population": 67215293, "area": 242900, "languages": "English", "currency": "British pound (£)", "timezone": "UTC+00:00", "cca2": "gb"}, {"cca3": "USA", "ccn3": "840", "name": "United States", "flag": "🇺🇸", "region": "Americas", "subregion": "North America", "capital": "Washington D.C.", "population": 329484123, "area": 9372610, "languages": "English", "currency": "United States dollar ($)", "timezone": "UTC-05:00", "cca2": "us"}, {"cca3": "URY", "ccn3": "858", "name": "Uruguay", "flag": "🇺🇾", "region": "Americas", "subregion": "South America", "capital": "Montevideo", "population": 3473727, "area": 176215, "languages": "Spanish", "currency": "Uruguayan peso ($)", "timezone": "UTC-03:00", "cca2": "uy"}, {"cca3": "UZB", "ccn3": "860", "name": "Uzbekistan", "flag": "🇺🇿", "region": "Asia", "subregion": "Central Asia", "capital": "Tashkent", "population": 34915100, "area": 448978, "languages": "Uzbek, Russian", "currency": "Uzbekistani soʻm (so'm)", "timezone": "UTC+05:00", "cca2": "uz"}, {"cca3": "VUT", "ccn3": "548", "name": "Vanuatu", "flag": "🇻🇺", "region": "Oceania", "subregion": "Melanesia", "capital": "Port Vila", "population": 307150, "area": 12189, "languages": "Bislama, English, French", "currency": "Vanuatu vatu (Vt)", "timezone": "UTC+11:00", "cca2": "vu"}, {"cca3": "VEN", "ccn3": "862", "name": "Venezuela", "flag": "🇻🇪", "region": "Americas", "subregion": "South America", "capital": "Caracas", "population": 28435943, "area": 916445, "languages": "Spanish", "currency": "Venezuelan bolívar soberano (Bs.S)", "timezone": "UTC-04:00", "cca2": "ve"}, {"cca3": "VNM", "ccn3": "704", "name": "Vietnam", "flag": "🇻🇳", "region": "Asia", "subregion": "South-Eastern Asia", "capital": "Hanoi", "population": 97338583, "area": 331212, "languages": "Vietnamese", "currency": "Vietnamese đồng (₫)", "timezone": "UTC+07:00", "cca2": "vn"}, {"cca3": "YEM", "ccn3": "887", "name": "Yemen", "flag": "🇾🇪", "region": "Asia", "subregion": "Western Asia", "capital": "Sanaa", "population": 32981641, "area": 527968, "languages": "Arabic", "currency": "Yemeni rial (﷼)", "timezone": "UTC+03:00", "cca2": "ye"}, {"cca3": "ZMB", "ccn3": "894", "name": "Zambia", "flag": "🇿🇲", "region": "Africa", "subregion": "Eastern Africa", "capital": "Lusaka", "population": 18383956, "area": 752612, "languages": "English", "currency": "Zambian kwacha (ZK)", "timezone": "UTC+02:00", "cca2": "zm"}, {"cca3": "ZWE", "ccn3": "716", "name": "Zimbabwe", "flag": "🇿🇼", "region": "Africa", "subregion": "Southern Africa", "capital": "Harare", "population": 14862927, "area": 390757, "languages": "Shona, Ndebele, English", "currency": "Zimbabwean dollar ($)", "timezone": "UTC+02:00", "cca2": "zw"}];
+
+const TOTAL_WORLD = 195;
+const CONTINENT_TOTALS = { Africa:54, Asia:48, Europe:43, Americas:35, Oceania:14 };
+const CONTINENT_COLORS = { Africa:'#f59e0b', Asia:'#3b82f6', Europe:'#a78bfa', Americas:'#22c55e', Oceania:'#f87171' };
+
+const BADGES = [
+  { id:'first',      icon:'✈️',  name:'First Steps',       desc:'Visit your first country',          check: v => v >= 1 },
+  { id:'ten',        icon:'🌟',  name:'10 Countries',       desc:'Visit 10 countries',                check: v => v >= 10 },
+  { id:'twentyfive', icon:'🏅',  name:'25 Countries',       desc:'Visit 25 countries',                check: v => v >= 25 },
+  { id:'fifty',      icon:'🌍',  name:'Half Century',       desc:'Visit 50 countries',                check: v => v >= 50 },
+  { id:'hundred',    icon:'💯',  name:'Century Club',       desc:'Visit 100 countries',               check: v => v >= 100 },
+  { id:'africa',     icon:'🦁',  name:'Africa Explorer',    desc:'Visit 5+ African countries',        check: (v,s) => (s.Africa||0) >= 5 },
+  { id:'asia',       icon:'🏯',  name:'Asia Explorer',      desc:'Visit 5+ Asian countries',          check: (v,s) => (s.Asia||0) >= 5 },
+  { id:'europe',     icon:'🏰',  name:'Europe Explorer',    desc:'Visit 5+ European countries',       check: (v,s) => (s.Europe||0) >= 5 },
+  { id:'americas',   icon:'🗽',  name:'Americas Explorer',  desc:'Visit 5+ American countries',       check: (v,s) => (s.Americas||0) >= 5 },
+  { id:'oceania',    icon:'🦘',  name:'Oceania Explorer',   desc:'Visit 3+ Oceanian countries',       check: (v,s) => (s.Oceania||0) >= 3 },
+  { id:'fivecont',   icon:'🗺️',  name:'5 Continents',       desc:'Visit countries on 5 continents',   check: (v,s) => Object.keys(s).filter(k=>s[k]>0).length >= 5 },
+  { id:'planner',    icon:'📅',  name:'Planner',            desc:'Plan trips to 5+ countries',        check: (v,s,p) => p >= 5 },
+];
+
+const allCountries = [...COUNTRIES].sort((a,b) => a.name.localeCompare(b.name));
+const lookup = {};
+COUNTRIES.forEach(c => { lookup[c.cca3] = c; });
+
+let countryStatuses = {};
+let countryDetails  = {}; // { cca3: { rating, year, notes } }
+let selectedCountry = null;
+let currentUser     = null;
+let zoom            = null;
+let svg             = null;
+let unsubSnapshot   = null;
+let statsOpen       = false;
+let earnedBadges    = new Set();
+let _onboardingDone = (() => { try { return !!localStorage.getItem('atlas_onboarded'); } catch(e) { return false; } })();
+let achQueue        = [];
+let achShowing      = false;
+
+
+// ── FLAG HELPER ──────────────────────────────────────
+// Build cca3→cca2 map from country data
+const cca3ToCca2 = {};
+COUNTRIES.forEach(c => { if (c.cca2) cca3ToCca2[c.cca3] = c.cca2.toLowerCase(); });
+function getFlagCca2(cca3) { return cca3ToCca2[cca3] || null; }
+
+// ── AUTH ──────────────────────────────────────────────
+document.getElementById('google-sign-in-btn').addEventListener('click', async () => {
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch(e) { console.warn('Sign-in error:', e.message); }
+});
+document.getElementById('auth-btn').addEventListener('click', async () => {
+  if (currentUser) await signOut(auth);
+});
+
+onAuthStateChanged(auth, async (user) => {
+  currentUser = user;
+  if (user) {
+    document.getElementById('auth-btn').innerHTML =
+      `<img src="${user.photoURL}" alt="" /><span>${user.displayName?.split(' ')[0] ?? 'User'} · Sign out</span>`;
+    document.getElementById('login-screen').classList.add('hidden');
+    updateMobileAuthBtn(user);
+    // Save public display name for compare feature
+    setDoc(doc(db, 'users', user.uid, 'meta', 'profile'), { displayName: user.displayName || 'Traveller' }, { merge: true }).catch(()=>{});
+    // Show onboarding for new users
+    if (!_onboardingDone) setTimeout(showOnboarding, 800);
+    if (unsubSnapshot) unsubSnapshot();
+    const ref = doc(db, 'users', user.uid, 'data', 'statuses');
+    unsubSnapshot = onSnapshot(ref, snap => {
+      if (isReadOnly) return; // don't overwrite friend's data
+      countryStatuses = snap.exists() ? (snap.data().statuses ?? {}) : {};
+      countryDetails  = snap.exists() ? (snap.data().details  ?? {}) : {};
+      refreshMap();
+      updateStats();
+    });
+  } else {
+    document.getElementById('auth-btn').innerHTML =
+      `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span>Sign out</span>`;
+    if (unsubSnapshot) { unsubSnapshot(); unsubSnapshot = null; }
+    countryStatuses = {};
+    closePanel();
+    closeStats();
+    refreshMap();
+    updateStats();
+    document.getElementById('login-screen').classList.remove('hidden');
+    updateMobileAuthBtn(null);
+  }
+});
+
+async function saveStatuses() {
+  if (!currentUser) return;
+  await setDoc(doc(db, 'users', currentUser.uid, 'data', 'statuses'), { statuses: countryStatuses, details: countryDetails });
+}
+
+// ── MAP ───────────────────────────────────────────────
+async function buildMap() {
+  const world = await d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+  svg = d3.select('#map-svg');
+  const W = svg.node().clientWidth  || window.innerWidth;
+  const H = svg.node().clientHeight || (window.innerHeight - 56);
+  const proj = d3.geoNaturalEarth1().scale(W / 6.3).translate([W/2, H/2]);
+  const path = d3.geoPath().projection(proj);
+  const g    = svg.append('g').attr('id', 'map-g');
+  g.append('rect').attr('x',-9999).attr('y',-9999).attr('width',19998).attr('height',19998).attr('fill','#0d1829');
+  const features = topojson.feature(world, world.objects.countries).features;
+  g.selectAll('.country')
+   .data(features).enter().append('path')
+   .attr('class', d => cls(getCca3(d.id)))
+   .attr('d', path)
+   .attr('data-cca3', d => getCca3(d.id))
+   .on('mousemove', function(event) {
+     const info = lookup[this.getAttribute('data-cca3')];
+     const tip  = document.getElementById('tooltip');
+     tip.textContent = info?.name ?? '—';
+     tip.style.left  = (event.offsetX + 14) + 'px';
+     tip.style.top   = (event.offsetY - 30) + 'px';
+     tip.classList.add('show');
+   })
+   .on('mouseleave', () => document.getElementById('tooltip').classList.remove('show'))
+   .on('click', function(event) {
+     event.stopPropagation();
+     if (!currentUser) return;
+     const cca3 = this.getAttribute('data-cca3');
+     if (isMobile()) openBottomSheet(cca3);
+     else openPanel(cca3);
+   });
+  g.append('path')
+   .datum(topojson.mesh(world, world.objects.countries, (a,b) => a !== b))
+   .attr('fill','none').attr('stroke','#1e2d45').attr('stroke-width',.5).attr('d', path);
+  zoom = d3.zoom()
+    .scaleExtent([1, 12])
+    .translateExtent([[-W * 0.3, -H * 0.3], [W * 1.3, H * 1.3]])
+    .on('zoom', e => g.attr('transform', e.transform));
+  svg.call(zoom);
+}
+
+function getCca3(numId) {
+  const m = COUNTRIES.find(c => parseInt(c.ccn3) === parseInt(numId));
+  return m ? m.cca3 : String(numId);
+}
+function cls(cca3) { return ('country ' + (countryStatuses[cca3] || '') + (selectedCountry === cca3 ? ' selected' : '')).trim(); }
+function refreshMap() {
+  d3.selectAll('.country').attr('class', function() { return cls(this.getAttribute('data-cca3')); });
+  updateCounts();
+  if (selectedCountry) updateBtns(selectedCountry);
+}
+function updateCounts() {
+  const v = Object.values(countryStatuses);
+  document.getElementById('count-visited').textContent  = v.filter(x=>x==='visited').length;
+  document.getElementById('count-planned').textContent  = v.filter(x=>x==='planned').length;
+  document.getElementById('count-wishlist').textContent = v.filter(x=>x==='wishlist').length;
+}
+
+// ── STATS ─────────────────────────────────────────────
+function calcStats() {
+  const visitedCca3 = Object.keys(countryStatuses).filter(k => countryStatuses[k] === 'visited');
+  const plannedCount = Object.values(countryStatuses).filter(v => v === 'planned').length;
+  const total = visitedCca3.length;
+  const byContinent = {};
+  visitedCca3.forEach(cca3 => {
+    const c = lookup[cca3];
+    if (c) byContinent[c.region] = (byContinent[c.region] || 0) + 1;
+  });
+  return { total, byContinent, plannedCount };
+}
+
+function updateStats() {
+  const { total, byContinent, plannedCount } = calcStats();
+  const pct = Math.round((total / TOTAL_WORLD) * 100);
+
+  // Ring
+  const circumference = 2 * Math.PI * 28; // r=28
+  const filled = (pct / 100) * circumference;
+  document.getElementById('ring-fill').setAttribute('stroke-dasharray', `${filled} ${circumference}`);
+  document.getElementById('ring-pct').innerHTML = `${pct}<span>%</span>`;
+  document.getElementById('ring-sub').textContent = `${total} of ${TOTAL_WORLD} countries`;
+
+  // Continent bars
+  const barsEl = document.getElementById('continent-bars');
+  barsEl.innerHTML = Object.entries(CONTINENT_TOTALS).map(([name, tot]) => {
+    const visited = byContinent[name] || 0;
+    const pctBar  = Math.round((visited / tot) * 100);
+    const color   = CONTINENT_COLORS[name] || '#6b7280';
+    return `<div class="continent-row">
+      <div class="cont-header">
+        <span class="cont-name">${name}</span>
+        <span class="cont-count">${visited}/${tot}</span>
+      </div>
+      <div class="cont-bar-bg">
+        <div class="cont-bar-fill" style="width:${pctBar}%;background:${color}"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Badges
+  const badgesEl = document.getElementById('badges-grid');
+  badgesEl.innerHTML = BADGES.map(b => {
+    const earned = b.check(total, byContinent, plannedCount);
+    return `<div class="badge ${earned ? 'earned' : ''}" title="${b.desc}">
+      <div class="badge-icon">${b.icon}</div>
+      <div class="badge-name">${b.name}</div>
+    </div>`;
+  }).join('');
+}
+
+
+
+// ── STARS / YEAR / NOTES ─────────────────────────────
+function renderStars(containerEl, cca3) {
+  const rating = countryDetails[cca3]?.rating || 0;
+  containerEl.querySelectorAll('.star-btn').forEach(btn => {
+    const n = parseInt(btn.dataset.star);
+    btn.classList.toggle('lit', n <= rating);
+  });
+}
+
+function attachStarHandlers(containerEl, cca3Getter, onSave) {
+  const stars = containerEl.querySelectorAll('.star-btn');
+  stars.forEach(btn => {
+    const n = parseInt(btn.dataset.star);
+
+    // Hover preview — light up all stars up to hovered one
+    btn.addEventListener('mouseenter', () => {
+      stars.forEach(s => {
+        s.classList.toggle('hover-lit', parseInt(s.dataset.star) <= n);
+      });
+    });
+    btn.addEventListener('mouseleave', () => {
+      stars.forEach(s => s.classList.remove('hover-lit'));
+    });
+
+    btn.addEventListener('click', async () => {
+      const cca3 = cca3Getter();
+      if (!cca3 || !currentUser) return;
+      const cur = countryDetails[cca3]?.rating || 0;
+      if (!countryDetails[cca3]) countryDetails[cca3] = {};
+      countryDetails[cca3].rating = (cur === n) ? 0 : n;
+      renderStars(containerEl, cca3);
+      await saveStatuses();
+      if (onSave) onSave(cca3);
+    });
+  });
+}
+
+async function saveDetails(cca3, year, notes, savedEl) {
+  if (!cca3 || !currentUser) return;
+  if (!countryDetails[cca3]) countryDetails[cca3] = {};
+  countryDetails[cca3].year  = year  || '';
+  countryDetails[cca3].notes = notes || '';
+  await saveStatuses();
+  renderList();
+  savedEl.classList.add('show');
+  setTimeout(() => savedEl.classList.remove('show'), 2000);
+}
+
+function loadDetailsIntoPanel(cca3, yearEl, notesEl, starsEl) {
+  const d = countryDetails[cca3] || {};
+  yearEl.value  = d.year  || '';
+  notesEl.value = d.notes || '';
+  renderStars(starsEl, cca3);
+}
+
+// ── ACHIEVEMENT POPUP ─────────────────────────────────
+function checkNewBadges(prevStats, newStats) {
+  BADGES.forEach(b => {
+    const wasEarned = b.check(prevStats.total, prevStats.byContinent, prevStats.plannedCount);
+    const nowEarned = b.check(newStats.total, newStats.byContinent, newStats.plannedCount);
+    if (!wasEarned && nowEarned && !earnedBadges.has(b.id)) {
+      earnedBadges.add(b.id);
+      achQueue.push(b);
+      if (!achShowing) showNextAchievement();
+    }
+  });
+}
+
+function showNextAchievement() {
+  if (achQueue.length === 0) { achShowing = false; return; }
+  achShowing = true;
+  const b = achQueue.shift();
+  document.getElementById('ach-icon').textContent = b.icon;
+  document.getElementById('ach-name').textContent = b.name;
+  document.getElementById('ach-desc').textContent = b.desc;
+  const popup = document.getElementById('ach-popup');
+  popup.classList.add('show');
+  // Auto-dismiss after 5s
+  const timer = setTimeout(() => dismissAchievement(), 5000);
+  popup._timer = timer;
+}
+
+function dismissAchievement() {
+  const popup = document.getElementById('ach-popup');
+  clearTimeout(popup._timer);
+  popup.classList.remove('show');
+  setTimeout(() => showNextAchievement(), 400);
+}
+
+document.getElementById('ach-popup').addEventListener('click', dismissAchievement);
+document.getElementById('ach-dismiss').addEventListener('click', e => { e.stopPropagation(); dismissAchievement(); });
+
+// Stats panel toggle
+document.getElementById('stats-toggle-btn').addEventListener('click', () => {
+  statsOpen = !statsOpen;
+  document.getElementById('stats-panel').classList.toggle('open', statsOpen);
+  document.getElementById('stats-toggle-btn').classList.toggle('active', statsOpen);
+  if (statsOpen) { closePanel(); updateStats(); }
+});
+
+function closeStats() {
+  statsOpen = false;
+  document.getElementById('stats-panel').classList.remove('open');
+  document.getElementById('stats-toggle-btn').classList.remove('active');
+}
+
+// ── PANEL ─────────────────────────────────────────────
+function openPanel(cca3) {
+  const info = lookup[cca3];
+  if (!info) return;
+  selectedCountry = cca3;
+  closeStats();
+  const cca2Desktop = getFlagCca2(cca3);
+  document.getElementById('panel-flag').innerHTML = cca2Desktop
+    ? `<img src="https://flagcdn.com/w80/${cca2Desktop}.png" style="width:56px;height:auto;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.3)" onerror="this.outerHTML='${info.flag||'🌐'}'" />`
+    : (info.flag || '🌐');
+  document.getElementById('panel-name').textContent   = info.name;
+  document.getElementById('panel-region').textContent = [info.subregion, info.region].filter(Boolean).join(' · ');
+  document.getElementById('panel-data').innerHTML = `
+    <div class="data-cell"><div class="data-cell-label">Capital</div><div class="data-cell-value">${info.capital||'—'}</div></div>
+    <div class="data-cell"><div class="data-cell-label">Population</div><div class="data-cell-value">${info.population?.toLocaleString()||'—'}</div></div>
+    <div class="data-cell"><div class="data-cell-label">Area</div><div class="data-cell-value">${info.area ? info.area.toLocaleString()+' km²' : '—'}</div></div>
+    <div class="data-cell"><div class="data-cell-label">Region</div><div class="data-cell-value">${info.region||'—'}</div></div>
+    <div class="data-cell full"><div class="data-cell-label">Languages</div><div class="data-cell-value">${info.languages||'—'}</div></div>
+    <div class="data-cell full"><div class="data-cell-label">Currency</div><div class="data-cell-value">${info.currency||'—'}</div></div>
+    <div class="data-cell full"><div class="data-cell-label">Timezone</div><div class="data-cell-value">${info.timezone||'—'}</div></div>`;
+  updateBtns(cca3);
+  selectedCountry = cca3;
+  refreshMap();
+  loadDetailsIntoPanel(cca3, document.getElementById('panel-year'), document.getElementById('panel-notes'), document.getElementById('panel-stars'));
+  resetWiki();
+  document.getElementById('info-panel').classList.add('open');
+}
+function updateBtns(cca3) {
+  const s = countryStatuses[cca3];
+  document.getElementById('btn-visited').className  = 'status-btn' + (s==='visited'  ? ' active-visited'  : '');
+  document.getElementById('btn-planned').className  = 'status-btn' + (s==='planned'  ? ' active-planned'  : '');
+  document.getElementById('btn-wishlist').className = 'status-btn' + (s==='wishlist' ? ' active-wishlist' : '');
+}
+function closePanel() {
+  document.getElementById('info-panel').classList.remove('open');
+  selectedCountry = null;
+  refreshMap();
+}
+document.getElementById('panel-close-btn').addEventListener('click', closePanel);
+document.getElementById('map-svg').addEventListener('click', e => { closePanel(); closeStats(); });
+document.getElementById('btn-visited').addEventListener('click',  () => setStatus('visited'));
+document.getElementById('btn-planned').addEventListener('click',  () => setStatus('planned'));
+document.getElementById('btn-wishlist').addEventListener('click', () => setStatus('wishlist'));
+
+async function setStatus(status) {
+  if (!selectedCountry || !currentUser) return;
+  const prevStats = calcStats();
+  if (countryStatuses[selectedCountry] === status) delete countryStatuses[selectedCountry];
+  else countryStatuses[selectedCountry] = status;
+  await saveStatuses();
+  refreshMap();
+  updateStats();
+  const newStats = calcStats();
+  checkNewBadges(prevStats, newStats);
+  renderList();
+}
+
+// ── SEARCH ────────────────────────────────────────────
+document.getElementById('search').addEventListener('input', function() {
+  const val = this.value.trim();
+  const res = document.getElementById('search-results');
+  if (!val) { res.classList.remove('show'); return; }
+  const hits = allCountries.filter(c => c.name.toLowerCase().includes(val.toLowerCase())).slice(0,8);
+  if (!hits.length) { res.classList.remove('show'); return; }
+  res.innerHTML = hits.map(c => {
+    const cca2 = getFlagCca2(c.cca3);
+    const flagHtml = cca2
+      ? `<img src="https://flagcdn.com/w40/${cca2}.png" style="width:20px;height:14px;object-fit:cover;border-radius:2px;vertical-align:middle;margin-right:6px" onerror="this.outerHTML='${c.flag||''}'" />`
+      : `<span style="margin-right:6px">${c.flag||''}</span>`;
+    return `<div class="search-result-item" data-cca3="${c.cca3}" style="display:flex;align-items:center">${flagHtml}${c.name}</div>`;
+  }).join('');
+  res.classList.add('show');
+});
+document.getElementById('search-results').addEventListener('click', e => {
+  const item = e.target.closest('.search-result-item');
+  if (!item) return;
+  const cca3 = item.dataset.cca3;
+  document.getElementById('search').value = '';
+  document.getElementById('search-results').classList.remove('show');
+  if (currentUser) { if (isMobile()) openBottomSheet(cca3); else openPanel(cca3); }
+  const el = document.querySelector(`[data-cca3="${cca3}"]`);
+  if (el && zoom && svg) {
+    const b = el.getBBox();
+    const W = document.getElementById('map-svg').clientWidth;
+    const H = document.getElementById('map-svg').clientHeight;
+    svg.transition().duration(700).call(zoom.transform,
+      d3.zoomIdentity.translate(W/2, H/2).scale(3).translate(-(b.x+b.width/2), -(b.y+b.height/2)));
+  }
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('#search') && !e.target.closest('#search-results'))
+    document.getElementById('search-results').classList.remove('show');
+});
+
+// ── ZOOM ─────────────────────────────────────────────
+document.getElementById('zoom-in').addEventListener('click',    () => svg?.transition().duration(300).call(zoom.scaleBy, 1.5));
+document.getElementById('zoom-out').addEventListener('click',   () => svg?.transition().duration(300).call(zoom.scaleBy, 0.67));
+document.getElementById('zoom-reset').addEventListener('click', () => svg?.transition().duration(500).call(zoom.transform, d3.zoomIdentity));
+
+
+
+// Desktop panel — stars + save
+attachStarHandlers(document.getElementById('panel-stars'), () => selectedCountry, null);
+document.getElementById('panel-save-btn').addEventListener('click', () => {
+  const year  = document.getElementById('panel-year').value.trim();
+  const notes = document.getElementById('panel-notes').value.trim();
+  saveDetails(selectedCountry, year, notes, document.getElementById('panel-saved'));
+});
+
+// ── MOBILE DETECTION ─────────────────────────────────
+const isMobile = () => window.innerWidth <= 640;
+
+// ── BOTTOM SHEET LOGIC ───────────────────────────────
+function openBottomSheet(cca3) {
+  const info = lookup[cca3];
+  if (!info) return;
+  selectedCountry = cca3;
+
+  document.getElementById('bs-flag').textContent   = info.flag || '🌐';
+  document.getElementById('bs-name').textContent   = info.name;
+  document.getElementById('bs-region').textContent = [info.subregion, info.region].filter(Boolean).join(' · ');
+
+  document.getElementById('bs-data').innerHTML = `
+    <div class="bs-data-cell"><div class="bs-data-label">Capital</div><div class="bs-data-value">${info.capital||'—'}</div></div>
+    <div class="bs-data-cell"><div class="bs-data-label">Population</div><div class="bs-data-value">${info.population?.toLocaleString()||'—'}</div></div>
+    <div class="bs-data-cell"><div class="bs-data-label">Area</div><div class="bs-data-value">${info.area ? info.area.toLocaleString()+' km²' : '—'}</div></div>
+    <div class="bs-data-cell"><div class="bs-data-label">Region</div><div class="bs-data-value">${info.region||'—'}</div></div>
+    <div class="bs-data-cell full"><div class="bs-data-label">Languages</div><div class="bs-data-value">${info.languages||'—'}</div></div>
+    <div class="bs-data-cell full"><div class="bs-data-label">Currency</div><div class="bs-data-value">${info.currency||'—'}</div></div>
+    <div class="bs-data-cell full"><div class="bs-data-label">Timezone</div><div class="bs-data-value">${info.timezone||'—'}</div></div>`;
+
+  updateBsBtns(cca3);
+  selectedCountry = cca3;
+  refreshMap();
+  loadDetailsIntoPanel(cca3, document.getElementById('bs-year'), document.getElementById('bs-notes'), document.getElementById('bs-stars'));
+  resetWiki();
+
+  const sheet = document.getElementById('bottom-sheet');
+  const overlay = document.getElementById('bs-overlay');
+  sheet.style.display = 'block';
+  overlay.style.display = 'block';
+  requestAnimationFrame(() => {
+    sheet.classList.add('open');
+    overlay.classList.add('show');
+  });
+}
+
+function closeBottomSheet() {
+  const sheet   = document.getElementById('bottom-sheet');
+  const overlay = document.getElementById('bs-overlay');
+  sheet.classList.remove('open');
+  overlay.classList.remove('show');
+  setTimeout(() => { sheet.style.display='none'; overlay.style.display='none'; }, 350);
+  selectedCountry = null;
+}
+
+function updateBsBtns(cca3) {
+  const s = countryStatuses[cca3];
+  document.getElementById('bs-btn-visited').className  = 'bs-status-btn' + (s==='visited'  ? ' active-visited'  : '');
+  document.getElementById('bs-btn-planned').className  = 'bs-status-btn' + (s==='planned'  ? ' active-planned'  : '');
+  document.getElementById('bs-btn-wishlist').className = 'bs-status-btn' + (s==='wishlist' ? ' active-wishlist' : '');
+}
+
+
+// Mobile bottom sheet — stars + save
+attachStarHandlers(document.getElementById('bs-stars'), () => selectedCountry, null);
+document.getElementById('bs-save-btn').addEventListener('click', () => {
+  const year  = document.getElementById('bs-year').value.trim();
+  const notes = document.getElementById('bs-notes').value.trim();
+  saveDetails(selectedCountry, year, notes, document.getElementById('bs-saved'));
+});
+
+document.getElementById('bs-overlay').addEventListener('click', closeBottomSheet);
+document.getElementById('bs-btn-visited').addEventListener('click',  () => setBsStatus('visited'));
+document.getElementById('bs-btn-planned').addEventListener('click',  () => setBsStatus('planned'));
+document.getElementById('bs-btn-wishlist').addEventListener('click', () => setBsStatus('wishlist'));
+
+async function setBsStatus(status) {
+  if (!selectedCountry || !currentUser) return;
+  const prevStats = calcStats();
+  if (countryStatuses[selectedCountry] === status) delete countryStatuses[selectedCountry];
+  else countryStatuses[selectedCountry] = status;
+  await saveStatuses();
+  refreshMap();
+  updateStats();
+  updateBsBtns(selectedCountry);
+  const newStats = calcStats();
+  checkNewBadges(prevStats, newStats);
+}
+
+// Swipe down to close bottom sheet
+(function() {
+  let startY = 0;
+  const sheet = document.getElementById('bottom-sheet');
+  sheet.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive:true });
+  sheet.addEventListener('touchend',   e => {
+    if (e.changedTouches[0].clientY - startY > 80) closeBottomSheet();
+  }, { passive:true });
+})();
+
+// ── STATS BOTTOM SHEET ───────────────────────────────
+function openStatsBottomSheet() {
+  updateStatsMobile();
+  const sheet = document.getElementById('stats-bottom-sheet');
+  sheet.style.display = 'block';
+  requestAnimationFrame(() => sheet.classList.add('open'));
+  document.getElementById('mob-stats-btn').classList.add('active');
+}
+
+function closeStatsBottomSheet() {
+  const sheet = document.getElementById('stats-bottom-sheet');
+  sheet.classList.remove('open');
+  setTimeout(() => sheet.style.display='none', 350);
+  document.getElementById('mob-stats-btn').classList.remove('active');
+}
+
+function updateStatsMobile() {
+  const { total, byContinent, plannedCount } = calcStats();
+  const pct = Math.round((total / TOTAL_WORLD) * 100);
+  const circumference = 2 * Math.PI * 28;
+  const filled = (pct / 100) * circumference;
+
+  const ringM = document.getElementById('ring-fill-m');
+  if (ringM) ringM.setAttribute('stroke-dasharray', `${filled} ${circumference}`);
+  const pctM = document.getElementById('ring-pct-m');
+  if (pctM) pctM.innerHTML = `${pct}<span>%</span>`;
+  const subM = document.getElementById('ring-sub-m');
+  if (subM) subM.textContent = `${total} of ${TOTAL_WORLD} countries`;
+
+  const barsM = document.getElementById('continent-bars-m');
+  if (barsM) barsM.innerHTML = Object.entries(CONTINENT_TOTALS).map(([name, tot]) => {
+    const visited = byContinent[name] || 0;
+    const pctBar  = Math.round((visited / tot) * 100);
+    const color   = CONTINENT_COLORS[name] || '#6b7280';
+    return `<div class="continent-row">
+      <div class="cont-header"><span class="cont-name">${name}</span><span class="cont-count">${visited}/${tot}</span></div>
+      <div class="cont-bar-bg"><div class="cont-bar-fill" style="width:${pctBar}%;background:${color}"></div></div>
+    </div>`;
+  }).join('');
+
+  const badgesM = document.getElementById('badges-grid-m');
+  if (badgesM) badgesM.innerHTML = BADGES.map(b => {
+    const earned = b.check(total, byContinent, plannedCount);
+    return `<div class="badge ${earned ? 'earned' : ''}" title="${b.desc}">
+      <div class="badge-icon">${b.icon}</div>
+      <div class="badge-name">${b.name}</div>
+    </div>`;
+  }).join('');
+}
+
+// Swipe down to close stats sheet
+(function() {
+  let startY = 0;
+  const sheet = document.getElementById('stats-bottom-sheet');
+  sheet.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive:true });
+  sheet.addEventListener('touchend',   e => {
+    if (e.changedTouches[0].clientY - startY > 80) closeStatsBottomSheet();
+  }, { passive:true });
+})();
+
+
+// ── LIST VIEW ────────────────────────────────────────
+let listFilter  = 'visited';
+let listSearch  = '';
+let listOpen    = false;
+
+function openList() {
+  listOpen = true;
+  renderList();
+  document.getElementById('list-overlay').classList.add('show');
+  document.getElementById('list-panel').classList.add('open');
+  document.getElementById('list-toggle-btn')?.classList.add('active');
+  document.getElementById('mob-list-btn')?.classList.add('active');
+}
+function closeList() {
+  listOpen = false;
+  document.getElementById('list-overlay').classList.remove('show');
+  document.getElementById('list-panel').classList.remove('open');
+  document.getElementById('list-toggle-btn')?.classList.remove('active');
+  document.getElementById('mob-list-btn')?.classList.remove('active');
+}
+
+function renderList() {
+  if (!listOpen) return;
+  const body = document.getElementById('list-body');
+  const countries = Object.keys(countryStatuses)
+    .filter(cca3 => countryStatuses[cca3] === listFilter)
+    .map(cca3 => ({ cca3, info: lookup[cca3], details: countryDetails[cca3] || {} }))
+    .filter(x => x.info)
+    .filter(x => !listSearch || x.info.name.toLowerCase().includes(listSearch))
+    .sort((a,b) => a.info.name.localeCompare(b.info.name));
+
+  if (!countries.length) {
+    const labels = { visited:'visited yet', planned:'planned trips', wishlist:'wishlist countries' };
+    body.innerHTML = `<div class="list-empty">No ${labels[listFilter]}.<br>Tap a country on the map to add it!</div>`;
+    return;
+  }
+
+  const statusColor = { visited:'var(--visited)', planned:'var(--planned)', wishlist:'var(--wishlist)' };
+  body.innerHTML = countries.map(({ cca3, info, details }) => {
+    const stars = details.rating ? '★'.repeat(details.rating) : '';
+    const sub   = [details.year, details.notes].filter(Boolean).join(' · ');
+    const cca2  = cca3ToCca2[cca3];
+    const flagHtml = cca2
+      ? `<img src="https://flagcdn.com/w40/${cca2}.png" style="width:26px;height:auto;border-radius:2px" onerror="this.outerHTML='${info.flag||''}'" />`
+      : (info.flag || '');
+    return `<div class="list-item" data-cca3="${cca3}">
+      <div class="list-item-flag">${flagHtml}</div>
+      <div class="list-item-info">
+        <div class="list-item-name">${info.name}</div>
+        ${sub ? `<div class="list-item-sub">${sub}</div>` : ''}
+      </div>
+      ${stars ? `<div class="list-item-stars">${stars}</div>` : ''}
+      <div class="list-item-badge" style="background:${statusColor[listFilter]}"></div>
+    </div>`;
+  }).join('');
+
+  // Click item → open panel/sheet
+  body.querySelectorAll('.list-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const cca3 = el.dataset.cca3;
+      closeList();
+      if (isMobile()) openBottomSheet(cca3);
+      else openPanel(cca3);
+    });
+  });
+}
+
+// Tab switching
+document.querySelectorAll('.list-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.list-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    listFilter = tab.dataset.filter;
+    renderList();
+  });
+});
+
+// List search
+document.getElementById('list-search').addEventListener('input', function() {
+  listSearch = this.value.trim().toLowerCase();
+  renderList();
+});
+
+// Open/close handlers
+document.getElementById('list-toggle-btn')?.addEventListener('click', () => listOpen ? closeList() : openList());
+document.getElementById('mob-list-btn')?.addEventListener('click',   () => listOpen ? closeList() : openList());
+document.getElementById('list-close-btn').addEventListener('click',  closeList);
+document.getElementById('list-overlay').addEventListener('click',    closeList);
+
+// ── MOBILE NAV ───────────────────────────────────────
+document.getElementById('mob-search-btn').addEventListener('click', () => {
+  document.getElementById('search').focus();
+});
+
+document.getElementById('mob-stats-btn').addEventListener('click', () => {
+  if (document.getElementById('stats-bottom-sheet').classList.contains('open')) {
+    closeStatsBottomSheet();
+  } else {
+    closeBottomSheet();
+    openStatsBottomSheet();
+  }
+});
+
+document.getElementById('mob-share-btn')?.addEventListener('click', () => {
+  if (!currentUser) return;
+  const url = getShareUrl(currentUser.uid);
+  document.getElementById('share-url-input').value = url;
+  document.getElementById('share-modal').classList.add('show');
+  document.getElementById('compare-result').classList.remove('show');
+  document.getElementById('compare-input').value = '';
+});
+
+document.getElementById('mob-auth-btn').addEventListener('click', async () => {
+  if (currentUser) await signOut(auth);
+  else {
+    try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+    catch(e) { console.warn(e.message); }
+  }
+});
+
+// Update mobile auth button
+function updateMobileAuthBtn(user) {
+  const btn   = document.getElementById('mob-auth-btn');
+  const label = document.getElementById('mob-auth-label');
+  if (user) {
+    btn.innerHTML = `<img src="${user.photoURL}" style="width:22px;height:22px;border-radius:50%;object-fit:cover" /><span style="font-size:.62rem;color:var(--text-muted)">Sign out</span>`;
+  } else {
+    btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="mob-auth-label">Sign in</span>`;
+  }
+}
+
+
+// ── ONBOARDING ───────────────────────────────────────
+const OB_STEPS = [
+  { icon:'🌍', title:'Welcome to Atlas!',      desc:'Your personal world travel tracker. Tap any country on the map to mark it as Visited, Planned, or on your Wishlist.' },
+  { icon:'✅', title:'Track Your Travels',     desc:'Mark countries green for Visited, blue for Planned, and yellow for Wishlist. Your progress syncs across all devices.' },
+  { icon:'⭐', title:'Add Personal Details',   desc:'Rate countries with stars, add notes and the year you visited — build a real travel journal.' },
+  { icon:'📊', title:'See Your Stats',          desc:'Tap "My Stats" to see your world coverage percentage, continent progress, and earn badges as you explore.' },
+  { icon:'🔗', title:'Share & Compare',        desc:'Share your map with friends via a link, and compare visited countries to discover what you have in common!' },
+];
+let obStep = 0;
+
+function showOnboarding() {
+  obStep = 0;
+  renderObStep();
+  document.getElementById('onboarding').classList.add('show');
+}
+function hideOnboarding() {
+  document.getElementById('onboarding').classList.remove('show');
+  _onboardingDone = true;
+  try { localStorage.setItem('atlas_onboarded', '1'); } catch(e) {}
+}
+function renderObStep() {
+  const s = OB_STEPS[obStep];
+  document.getElementById('ob-icon').textContent  = s.icon;
+  document.getElementById('ob-title').textContent = s.title;
+  document.getElementById('ob-desc').textContent  = s.desc;
+  document.getElementById('ob-next').textContent  = obStep < OB_STEPS.length - 1 ? 'Next →' : 'Let\'s go! 🚀';
+  const dots = document.getElementById('ob-steps');
+  dots.innerHTML = OB_STEPS.map((_,i) => `<div class="ob-dot ${i===obStep?'active':''}"></div>`).join('');
+}
+document.getElementById('ob-next').addEventListener('click', () => {
+  if (obStep < OB_STEPS.length - 1) { obStep++; renderObStep(); }
+  else hideOnboarding();
+});
+document.getElementById('ob-skip').addEventListener('click', hideOnboarding);
+
+
+// ── SHARE & COMPARE ──────────────────────────────────
+let isReadOnly = false;
+
+function getShareUrl(uid) {
+  return `${location.origin}${location.pathname}?atlas=${uid}`;
+}
+
+document.getElementById('share-btn')?.addEventListener('click', () => {
+  if (!currentUser) return;
+  const url = getShareUrl(currentUser.uid);
+  document.getElementById('share-url-input').value = url;
+  document.getElementById('share-modal').classList.add('show');
+  document.getElementById('compare-result').classList.remove('show');
+  document.getElementById('compare-input').value = '';
+});
+document.getElementById('share-modal-close').addEventListener('click', () => {
+  document.getElementById('share-modal').classList.remove('show');
+});
+document.getElementById('share-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('share-modal'))
+    document.getElementById('share-modal').classList.remove('show');
+});
+
+document.getElementById('share-copy-btn').addEventListener('click', () => {
+  const val = document.getElementById('share-url-input').value;
+  navigator.clipboard.writeText(val).catch(() => {});
+  const c = document.getElementById('share-copied');
+  c.classList.add('show');
+  setTimeout(() => c.classList.remove('show'), 2500);
+});
+
+document.getElementById('compare-btn').addEventListener('click', async () => {
+  const raw = document.getElementById('compare-input').value.trim();
+  const result = document.getElementById('compare-result');
+  result.innerHTML = '<span style="color:var(--text-muted)">Loading…</span>';
+  result.classList.add('show');
+
+  // Extract UID from URL or treat as raw UID
+  let uid = raw;
+  try { const u = new URL(raw); uid = u.searchParams.get('atlas') || raw; } catch(e) {}
+
+  if (!uid) { result.innerHTML = '<span style="color:#f87171">Invalid link or ID.</span>'; return; }
+  if (uid === currentUser?.uid) { result.innerHTML = '<span style="color:#f87171">That\'s your own link!</span>'; return; }
+
+  try {
+    const snap = await getDoc(doc(db, 'users', uid, 'data', 'statuses'));
+    if (!snap.exists()) { result.innerHTML = '<span style="color:#f87171">Profile not found.</span>'; return; }
+    const friendStatuses = snap.data().statuses ?? {};
+    const myVisited     = new Set(Object.keys(countryStatuses).filter(k => countryStatuses[k] === 'visited'));
+    const theirVisited  = new Set(Object.keys(friendStatuses).filter(k => friendStatuses[k] === 'visited'));
+    const common        = [...myVisited].filter(c => theirVisited.has(c));
+    const onlyMe        = [...myVisited].filter(c => !theirVisited.has(c));
+    const onlyThem      = [...theirVisited].filter(c => !myVisited.has(c));
+
+    const chips = common.slice(0,12).map(cca3 => {
+      const info = lookup[cca3];
+      const cca2 = getFlagCca2(cca3);
+      const flagHtml = cca2
+        ? `<img src="https://flagcdn.com/w40/${cca2}.png" style="width:16px;height:11px;object-fit:cover;border-radius:1px;vertical-align:middle;margin-right:3px" onerror="this.style.display='none'" />`
+        : `${info?.flag||''} `;
+      return `<span class="match-chip">${flagHtml}${info?.name||cca3}</span>`;
+    }).join('');
+    const more = common.length > 12 ? `<span class="match-chip">+${common.length-12} more</span>` : '';
+
+    // Build save-friend button if not already saved
+    const alreadySaved = savedFriends.find(f => f.uid === uid);
+    const saveBtnHtml = (!alreadySaved && uid !== currentUser?.uid) ? `
+      <button id="save-friend-now" class="friend-action-btn save-friend-btn"
+        style="margin-top:12px;width:100%;padding:9px;border-color:var(--accent);color:var(--accent);font-size:.82rem">
+        + Save as Friend
+      </button>` : (alreadySaved ? `<div style="margin-top:10px;font-size:.75rem;color:var(--visited)">✓ Already saved as friend</div>` : '');
+
+    result.innerHTML = `
+      <strong>🌍 ${theirVisited.size} countries visited</strong><br>
+      ✅ <strong>${common.length}</strong> countries in common<br>
+      🗺️ You\'ve been to <strong>${onlyMe.length}</strong> they haven\'t<br>
+      ✨ They\'ve been to <strong>${onlyThem.length}</strong> you haven\'t
+      ${common.length ? `<div class="match-list">${chips}${more}</div>` : ''}
+      ${saveBtnHtml}
+    `;
+
+    // Wire up save button
+    const saveBtn = document.getElementById('save-friend-now');
+    if (saveBtn) {
+      saveBtn.onclick = async () => {
+        saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+        try {
+          const profileSnap = await getDoc(doc(db, 'users', uid, 'meta', 'profile'));
+          const name  = profileSnap.exists() ? profileSnap.data().displayName : 'Traveller';
+          addFriend(uid, name, theirVisited.size);
+          saveBtn.textContent = '✓ Saved!';
+          saveBtn.style.color = 'var(--visited)';
+          saveBtn.style.borderColor = 'var(--visited)';
+        } catch(e) { saveBtn.textContent = 'Could not save'; saveBtn.disabled = false; }
+      };
+    }
+  } catch(e) {
+    result.innerHTML = '<span style="color:#f87171">Could not load profile. Make sure Firestore rules allow public reads.</span>';
+  }
+});
+
+// ── READ-ONLY MODE (viewing another user's map) ───────
+async function loadReadOnlyProfile(uid) {
+  isReadOnly = true;
+  document.getElementById('readonly-banner').style.display = 'flex';
+
+  // Disable interactive elements
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('share-btn') && (document.getElementById('share-btn').style.display='none');
+  document.getElementById('export-btn') && (document.getElementById('export-btn').style.display='none');
+  document.querySelectorAll('.status-btn,.bs-status-btn,.notes-save-btn,.bs-save-btn,.star-btn').forEach(el => el.disabled = true);
+
+  try {
+    const snap = await getDoc(doc(db, 'users', uid, 'data', 'statuses'));
+    if (snap.exists()) {
+      countryStatuses = snap.data().statuses ?? {};
+      countryDetails  = snap.data().details  ?? {};
+
+      // Try to get display name from public profile (if saved)
+      const profileSnap = await getDoc(doc(db, 'users', uid, 'meta', 'profile'));
+      const name = profileSnap.exists() ? profileSnap.data().displayName : 'a friend';
+      document.getElementById('readonly-text').textContent = `👁️ Viewing ${name}\'s travel map`;
+    }
+  } catch(e) { console.warn('Could not load profile:', e); }
+
+  refreshMap();
+  updateStats();
+}
+
+document.getElementById('readonly-back-btn').addEventListener('click', () => {
+  // Strip query param and reload
+  history.replaceState({}, '', location.pathname);
+  location.reload();
+});
+
+// ── EXPORT PNG ───────────────────────────────────────
+document.getElementById('export-btn')?.addEventListener('click', async () => {
+  const btn = document.getElementById('export-btn');
+  btn.classList.add('loading');
+  btn.textContent = 'Generating…';
+
+  try {
+    // Use html2canvas loaded on demand
+    if (!window.html2canvas) {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+    const mapEl = document.querySelector('.map-container');
+    const canvas = await html2canvas(mapEl, {
+      backgroundColor: '#0a0f1e',
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+    });
+
+    // Add Atlas watermark
+    const ctx = canvas.getContext('2d');
+    ctx.font = 'bold 28px serif';
+    ctx.fillStyle = 'rgba(232,201,122,0.8)';
+    ctx.fillText('Atlas', 24, canvas.height - 24);
+
+    const link = document.createElement('a');
+    link.download = 'atlas-travel-map.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch(e) {
+    console.error('Export failed:', e);
+    alert('Export failed. Try again or use a screenshot tool.');
+  }
+
+  btn.classList.remove('loading');
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export PNG';
+});
+
+
+// ── WIKIPEDIA ────────────────────────────────────────
+const wikiCache = {};
+
+async function fetchWiki(countryName) {
+  if (wikiCache[countryName]) return wikiCache[countryName];
+  try {
+    const res  = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(countryName)}`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const result = {
+      extract: data.extract || '',
+      pageUrl: data.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(countryName)}`,
+    };
+    wikiCache[countryName] = result;
+    return result;
+  } catch(e) { return null; }
+}
+
+function renderWikiContent(containerEl, data) {
+  if (!data) { containerEl.innerHTML = `<div class="wiki-excerpt" style="color:var(--text-muted);font-size:.78rem">No information available.</div>`; return; }
+  const excerpt = data.extract.length > 320 ? data.extract.slice(0, 320).replace(/\s\S+$/, '') + '…' : data.extract;
+  containerEl.innerHTML = `
+    <div class="wiki-excerpt">${excerpt}</div>
+    <a class="wiki-link" href="${data.pageUrl}" target="_blank" rel="noopener">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      Read more on Wikipedia
+    </a>`;
+}
+
+function attachWikiToggle(toggleId, contentId) {
+  const btn = document.getElementById(toggleId);
+  const box = document.getElementById(contentId);
+  if (!btn || !box) return;
+  let loaded = false;
+  btn.addEventListener('click', async () => {
+    const open = box.classList.toggle('open');
+    if (open && !loaded) {
+      loaded = true;
+      box.innerHTML = '<div class="wiki-loading">Loading…</div>';
+      const data = await fetchWiki(lookup[selectedCountry]?.name || '');
+      renderWikiContent(box, data);
+    }
+    if (!open) { loaded = false; box.innerHTML = ''; }
+  });
+}
+
+attachWikiToggle('panel-wiki-toggle', 'panel-wiki-content');
+attachWikiToggle('bs-wiki-toggle', 'bs-wiki-content');
+
+function resetWiki() {
+  ['panel-wiki-content','bs-wiki-content'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.remove('open'); el.innerHTML = ''; }
+  });
+}
+
+// ── FRIENDS ──────────────────────────────────────────
+let savedFriends = [];
+
+function loadFriends() {
+  try { savedFriends = JSON.parse(localStorage.getItem('atlas_friends') || '[]'); } catch(e) { savedFriends = []; }
+  renderFriendsList();
+}
+
+function saveFriendsLocal() {
+  try { localStorage.setItem('atlas_friends', JSON.stringify(savedFriends)); } catch(e) {}
+}
+
+function addFriend(uid, displayName, visitedCount) {
+  if (savedFriends.find(f => f.uid === uid)) return;
+  savedFriends.push({ uid, displayName, visitedCount });
+  saveFriendsLocal();
+  renderFriendsList();
+}
+
+function removeFriend(uid) {
+  savedFriends = savedFriends.filter(f => f.uid !== uid);
+  saveFriendsLocal();
+  renderFriendsList();
+}
+window.removeFriend = removeFriend;
+
+function renderFriendsList() {
+  const el = document.getElementById('friends-list');
+  if (!el) return;
+  if (!savedFriends.length) {
+    el.innerHTML = '<div class="friends-empty">No saved friends yet.<br>Compare with someone above, then save them!</div>';
+    return;
+  }
+  el.innerHTML = savedFriends.map(f => `
+    <div class="friend-item">
+      <div class="friend-avatar">${(f.displayName||'?')[0].toUpperCase()}</div>
+      <div class="friend-info">
+        <div class="friend-name">${f.displayName||'Traveller'}</div>
+        <div class="friend-stats">${f.visitedCount} countries visited</div>
+      </div>
+      <div class="friend-actions">
+        <button class="friend-action-btn" onclick="quickCompare('${f.uid}')">Compare</button>
+        <button class="friend-action-btn remove" onclick="removeFriend('${f.uid}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+window.quickCompare = function(uid) {
+  const url = getShareUrl(uid);
+  document.getElementById('compare-input').value = url;
+  document.getElementById('compare-btn').click();
+};
+
+// Patch compare button to show "Save Friend" after result loads
+// Save friend button is now injected directly inside the compare click handler above (see getDoc block)
+
+loadFriends();
+
+// ── INIT ─────────────────────────────────────────────
+
+// ── SERVICE WORKER (PWA offline) ─────────────────────
+if ('serviceWorker' in navigator) {
+  const swCode = `
+const CACHE = 'atlas-v2';
+const PRECACHE = [
+  'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap',
+  'https://d3js.org/d3.v7.min.js',
+  'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json',
+  'https://cdn.jsdelivr.net/npm/topojson-client@3/+esm',
+];
+self.addEventListener('install', e => {
+  self.skipWaiting();
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE).catch(()=>{})));
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys =>
+    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+  ));
+});
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  if (e.request.url.includes('firestore.googleapis.com')) return;
+  if (e.request.url.includes('firebase')) return;
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      const network = fetch(e.request).then(res => {
+        if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+        return res;
+      }).catch(() => cached);
+      return cached || network;
+    })
+  );
+});
+  `.trim();
+  const blob = new Blob([swCode], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).catch(() => {});
+}
+
+// Offline banner
+// Offline detection — only show banner when browser confirms offline
+// Never show on startup to avoid false positives on iOS PWA
+function showOfflineBanner(offline) {
+  document.getElementById('offline-banner')?.classList.toggle('show', offline);
+}
+// Fill iOS home indicator area
+(function(){
+  const fill = document.getElementById('ios-bottom-fill');
+  if (fill && /iPhone|iPad|iPod/.test(navigator.userAgent)) fill.style.display = 'block';
+})();
+window.addEventListener('online',  () => showOfflineBanner(false));
+window.addEventListener('offline', () => showOfflineBanner(true));
+// Only show if browser is certain we're offline (don't check on startup)
+
+// Check for shared profile URL
+const _atlasParam = new URLSearchParams(location.search).get('atlas');
+await buildMap();
+if (_atlasParam) {
+  await loadReadOnlyProfile(_atlasParam);
+} else {
+  updateStats();
+}
+document.getElementById('loading').classList.add('hidden');
+setTimeout(() => {
+  if (!currentUser && !isReadOnly) document.getElementById('login-screen').classList.remove('hidden');
+}, 800);
+</script>
+</body>
+</html>
