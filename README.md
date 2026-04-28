@@ -1,8 +1,6 @@
 # 🌍 Atlas — World Travel Tracker
 
-🌍 Personal travel tracker. Mark countries as visited, planned or wishlisted and see your journey on an interactive world map.
-
-**[→ Live Demo](https://atlas-tracker-e70d1.web.app)**
+A static, single-file world travel map. Mark countries as visited, planned, or wishlisted by editing `data.json` and pushing to GitHub Pages.
 
 ![Atlas Screenshot](screenshot.png)
 
@@ -10,13 +8,14 @@
 
 ## Features
 
-- **Interactive world map** — click any country to mark it as visited, planned, or wishlist
-- **Stats dashboard** — see your progress by continent, % of world visited, and achievements/badges
-- **Country details** — add personal notes, a rating (1–5 stars), and the year you visited
-- **Share your map** — generate a public link so friends can view your travel profile
-- **Compare with friends** — load a friend's profile and see which countries you've both visited
-- **Offline support** — works without internet after first load (PWA with service worker)
-- **Google Sign-In** — data synced to the cloud via Firebase, accessible on any device
+- **Interactive world map** — D3 + TopoJSON, click any country to see details
+- **Stats dashboard** — progress by continent, % of world visited, achievement badges
+- **Personal details** — display ratings, year visited, and notes per country
+- **Country info** — capital, population, area, languages, currency, timezone
+- **Wikipedia summaries** — on-demand "Learn more" via the public Wikipedia REST API
+- **PNG export** — download a snapshot of your map
+- **Search** — find any country and zoom to it
+- **Mobile-friendly** — responsive layout with bottom sheets and a mobile nav bar
 
 ---
 
@@ -26,12 +25,9 @@
 |---|---|
 | Frontend | Vanilla HTML, CSS, JavaScript (ES Modules) |
 | Map rendering | [D3.js v7](https://d3js.org/) + [TopoJSON](https://github.com/topojson/topojson) |
-| Auth | Firebase Authentication (Google Sign-In) |
-| Database | Firebase Firestore |
-| Hosting | Firebase Hosting |
-| PWA | Service Worker + Web App Manifest |
+| Hosting | Any static host (GitHub Pages, Netlify, Vercel, …) |
 
-No build tools, no frameworks — runs directly in the browser as a single HTML file.
+No build tools, no frameworks, no backend. The whole app is one HTML file plus one JSON file.
 
 ---
 
@@ -44,46 +40,46 @@ git clone https://github.com/yourusername/atlas-travel-tracker.git
 cd atlas-travel-tracker
 ```
 
-### 2. Set up Firebase
+### 2. Edit `data.json`
 
-1. Create a project at [firebase.google.com](https://firebase.google.com)
-2. Enable **Firestore** and **Google Authentication**
-3. Replace the `firebaseConfig` object in `index.html` with your own config:
+`data.json` holds your travels. The shape:
 
-```js
-const firebaseConfig = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT.firebaseapp.com",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT.firebasestorage.app",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId:             "YOUR_APP_ID"
-};
-```
-
-### 3. Set Firestore Security Rules
-
-In the Firebase Console under **Firestore → Rules**, use:
-
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId}/{document=**} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
+```json
+{
+  "statuses": {
+    "USA": "visited",
+    "JPN": "visited",
+    "FRA": "planned",
+    "NZL": "wishlist"
+  },
+  "details": {
+    "USA": { "rating": 5, "year": "2019", "notes": "Road trip across the southwest." },
+    "JPN": { "rating": 4, "year": "2023", "notes": "Cherry blossom season." }
   }
 }
 ```
 
-### 4. Run locally
+- Keys in `statuses` and `details` are ISO 3166-1 alpha-3 country codes (`USA`, `JPN`, `FRA`, `GBR`, …).
+- `statuses` values are `"visited"`, `"planned"`, or `"wishlist"`.
+- `details` is optional. Each entry can include any of `rating` (0–5), `year` (string), `notes` (string).
+- A list of valid country codes is in the `COUNTRIES` array at the top of `index.html`.
 
-No build step needed — just open `index.html` in a browser, or use a simple local server:
+### 3. Run locally
+
+No build step — just serve the directory:
 
 ```bash
-npx serve .
+python3 -m http.server 8000
+# or: npx serve .
 ```
+
+Open `http://localhost:8000`.
+
+### 4. Deploy to GitHub Pages
+
+In your repo settings → **Pages** → set the source to your default branch (root). Push, and your map is live at `https://<username>.github.io/<repo>/`.
+
+To update your map, edit `data.json` and push.
 
 ---
 
@@ -91,21 +87,11 @@ npx serve .
 
 ```
 index.html        # Entire app — HTML, CSS, and JS in one file
+data.json         # Your travel data
+screenshot.png    # README hero image
 README.md
+CLAUDE.md         # Notes for Claude Code when editing this repo
 ```
-
-> The app is intentionally built as a single file for simplicity and portability.
-> A natural next step would be splitting it into separate HTML/CSS/JS files
-> or migrating to a component-based framework like React.
-
----
-
-## What I'd do differently next time
-
-- Split into separate CSS and JS files for better maintainability
-- Add a proper build pipeline (e.g. Vite) to support environment variables
-- Write unit tests for the data logic (country status updates, stats calculation)
-- Migrate to React for cleaner component structure
 
 ---
 
