@@ -1,4 +1,15 @@
 {
-  "statuses": {},
+  "statuses": {
+    "KHM": "visited",
+    "CAN": "visited",
+    "DEU": "visited",
+    "IND": "visited",
+    "KOR": "visited",
+    "MYS": "visited",
+    "MDV": "visited",
+    "MEX": "visited",
+    "SGP": "visited",
+    "CHE": "visited"
+  },
   "details": {}
 }
