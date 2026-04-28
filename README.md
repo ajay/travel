@@ -66,18 +66,26 @@ cd atlas-travel-tracker
 
 ### 3. Run locally
 
-No build step — just serve the directory:
+After cloning, init the submodule:
+
+```bash
+git submodule update --init --recursive
+make serve            # http://localhost:8000
+```
+
+Or without the Makefile:
 
 ```bash
 python3 -m http.server 8000
-# or: npx serve .
 ```
 
-Open `http://localhost:8000`.
+Before pushing, run `make ci` (lint + build). Use `make format` to auto-fix prettier issues.
 
 ### 4. Deploy to GitHub Pages
 
-In your repo settings → **Pages** → set the source to your default branch (root). Push, and your map is live at `https://<username>.github.io/<repo>/`.
+`.github/workflows/deploy.yml` deploys on every push to `main` via the shared
+[`ajay/site-common`](https://github.com/ajay/site-common) reusable workflow. In the GitHub UI, set
+**Settings → Pages → Source = "GitHub Actions"**.
 
 To update your map, edit `data.json` and push.
 
@@ -86,11 +94,15 @@ To update your map, edit `data.json` and push.
 ## Project Structure
 
 ```
-index.html        # Entire app — HTML, CSS, and JS in one file
-data.json         # Your travel data
-screenshot.png    # README hero image
+index.html                       # Entire app — HTML, CSS, and JS in one file
+data.json                        # Your travel data
+screenshot.png                   # README hero image
+Makefile                         # Defers to site-common/makefiles/site.mk
+site-common/                     # Submodule: shared site build/deploy plumbing
+.github/workflows/deploy.yml     # Calls ajay/site-common's reusable deploy workflow
+.github/workflows/make-ci.yml    # Calls ajay/build-tools's reusable CI workflow
 README.md
-CLAUDE.md         # Notes for Claude Code when editing this repo
+CLAUDE.md                        # Notes for Claude Code when editing this repo
 ```
 
 ---
