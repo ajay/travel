@@ -3,6 +3,7 @@ import { $, escapeHtml, getFlagCca2, flagImg, rating } from "./util.js";
 import { openDetail } from "./detail.js";
 import { view, shown, step, whoLabel } from "./travellers.js";
 
+// A status tab, or null (no tab selected) for every country.
 let listFilter = "visited";
 let listSearch = "";
 let listOpen = false;
@@ -27,9 +28,13 @@ export function closeList() {
 export function renderList() {
   if (!listOpen) return;
   const body = $("list-body");
-  const countries = Object.keys(state.trips)
-    .map((cca3) => ({ cca3, info: state.lookup[cca3], v: view(cca3) }))
-    .filter((x) => x.v?.status === listFilter)
+  const countries = (
+    listFilter
+      ? Object.keys(state.trips)
+          .map((cca3) => ({ cca3, info: state.lookup[cca3], v: view(cca3) }))
+          .filter((x) => x.v?.status === listFilter)
+      : state.countries.map((c) => ({ cca3: c.cca3, info: c, v: view(c.cca3) }))
+  )
     .filter(
       (x) => !listSearch || x.info.name.toLowerCase().includes(listSearch),
     )
@@ -53,6 +58,15 @@ export function renderList() {
 
   body.innerHTML = countries
     .map(({ cca3, info, v }) => {
+      const cca2 = getFlagCca2(cca3);
+      const flagHtml = cca2
+        ? flagImg(cca2, "w40", info.flag || "")
+        : info.flag || "";
+      if (!v)
+        return `<div class="list-item" data-cca3="${cca3}">
+      <div class="list-item-flag">${flagHtml}</div>
+      <div class="list-item-info"><div class="list-item-name">${info.name}</div></div>
+    </div>`;
       const t = state.trips[cca3];
       const ds = v.who.map((i) => t[i]);
       const rs = ds.map((d) => rating(d.rating)).filter(Boolean);
@@ -85,10 +99,6 @@ export function renderList() {
         multi && s.length > 1
           ? `<div class="list-item-who">${escapeHtml(whoLabel(v, s))}</div>`
           : "";
-      const cca2 = getFlagCca2(cca3);
-      const flagHtml = cca2
-        ? flagImg(cca2, "w40", info.flag || "")
-        : info.flag || "";
       return `<div class="list-item" data-cca3="${cca3}">
       <div class="list-item-flag">${flagHtml}</div>
       <div class="list-item-info">
@@ -96,7 +106,7 @@ export function renderList() {
         ${sub ? `<div class="list-item-sub">${sub}</div>` : ""}
       </div>
       ${stars ? `<div class="list-item-stars">${stars}</div>` : ""}${who}
-      <div class="list-item-badge ${`${listFilter} ${step(v, s)}`.trim()}"></div>
+      <div class="list-item-badge ${`${v.status} ${step(v, s)}`.trim()}"></div>
     </div>`;
     })
     .join("");
@@ -111,12 +121,14 @@ export function renderList() {
 
 export function initList() {
   document.querySelectorAll(".list-tab").forEach((tab) => {
+    // Clicking the active tab deselects it: then every country is listed.
     tab.addEventListener("click", () => {
+      const on = !tab.classList.contains("active");
       document
         .querySelectorAll(".list-tab")
         .forEach((t) => t.classList.remove("active"));
-      tab.classList.add("active");
-      listFilter = tab.dataset.filter;
+      tab.classList.toggle("active", on);
+      listFilter = on ? tab.dataset.filter : null;
       renderList();
     });
   });
