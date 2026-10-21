@@ -1,15 +1,24 @@
 {
-  "travellers": ["ajay"],
+  "travellers": ["ajay", "samantha"],
   "countries": {
-    "KHM": { "ajay": "visited" },
-    "CAN": { "ajay": "visited" },
-    "DEU": { "ajay": "visited" },
-    "IND": { "ajay": "visited" },
-    "KOR": { "ajay": "visited" },
-    "MYS": { "ajay": "visited" },
-    "MDV": { "ajay": "visited" },
+    "KHM": { "ajay": "visited", "samantha": "visited" },
+    "CAN": { "ajay": "visited", "samantha": "visited" },
+    "DEU": { "ajay": "visited", "samantha": "visited" },
+    "IND": { "ajay": "visited", "samantha": "visited" },
+    "KOR": { "ajay": "visited", "samantha": "visited" },
+    "MYS": { "ajay": "visited", "samantha": "visited" },
+    "MDV": { "ajay": "visited", "samantha": "visited" },
     "MEX": { "ajay": "visited" },
-    "SGP": { "ajay": "visited" },
-    "CHE": { "ajay": "visited" }
+    "SGP": { "ajay": "visited", "samantha": "visited" },
+    "CHE": { "ajay": "visited", "samantha": "visited" },
+    "USA": { "ajay": "visited", "samantha": "visited" },
+    "JPN": { "ajay": "visited" },
+    "CHN": { "ajay": "visited" },
+    "IDN": { "ajay": "visited", "samantha": "visited" },
+    "GBR": { "ajay": "visited", "samantha": "visited" },
+    "BHS": { "ajay": "visited" },
+    "JAM": { "ajay": "visited" },
+    "FRA": { "ajay": "visited", "samantha": "visited" },
+    "TUR": { "ajay": "visited" }
   }
 }
