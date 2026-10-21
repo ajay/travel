@@ -2,14 +2,6 @@ import { state } from "./state.js";
 import { $, swipeToClose } from "./util.js";
 import { closeDetail } from "./detail.js";
 
-const TOTAL_WORLD = 195;
-const CONTINENT_TOTALS = {
-  Africa: 54,
-  Asia: 48,
-  Europe: 43,
-  Americas: 35,
-  Oceania: 14,
-};
 const CONTINENT_COLORS = {
   Africa: "#f59e0b",
   Asia: "#3b82f6",
@@ -123,17 +115,27 @@ function calcStats() {
   return { total, byContinent, plannedCount };
 }
 
+function continentTotals() {
+  const t = Object.fromEntries(
+    Object.keys(CONTINENT_COLORS).map((k) => [k, 0]),
+  );
+  for (const c of state.countries)
+    if (c.region) t[c.region] = (t[c.region] || 0) + 1;
+  return Object.entries(t).filter(([, n]) => n);
+}
+
 export function renderStats() {
   const { total, byContinent, plannedCount } = calcStats();
-  const pct = Math.round((total / TOTAL_WORLD) * 100);
+  const world = state.countries.length;
+  const pct = Math.round((total / world) * 100);
 
   const circumference = 2 * Math.PI * 28;
   const filled = (pct / 100) * circumference;
   $("ring-fill").setAttribute("stroke-dasharray", `${filled} ${circumference}`);
   $("ring-pct").innerHTML = `${pct}<span>%</span>`;
-  $("ring-sub").textContent = `${total} of ${TOTAL_WORLD} countries`;
+  $("ring-sub").textContent = `${total} of ${world} countries`;
 
-  $("continent-bars").innerHTML = Object.entries(CONTINENT_TOTALS)
+  $("continent-bars").innerHTML = continentTotals()
     .map(([name, tot]) => {
       const visited = byContinent[name] || 0;
       const pctBar = Math.round((visited / tot) * 100);

@@ -1995,6 +1995,21 @@
     "cca2": "pw"
   },
   {
+    "cca3": "PSE",
+    "ccn3": "275",
+    "name": "Palestine",
+    "flag": "🇵🇸",
+    "region": "Asia",
+    "subregion": "Western Asia",
+    "capital": "Ramallah",
+    "population": 4803269,
+    "area": 6020,
+    "languages": "Arabic",
+    "currency": "Israeli new shekel (₪)",
+    "timezone": "UTC+02:00",
+    "cca2": "ps"
+  },
+  {
     "cca3": "PAN",
     "ccn3": "591",
     "name": "Panama",
@@ -2833,6 +2848,21 @@
     "currency": "Vanuatu vatu (Vt)",
     "timezone": "UTC+11:00",
     "cca2": "vu"
+  },
+  {
+    "cca3": "VAT",
+    "ccn3": "336",
+    "name": "Vatican City",
+    "flag": "🇻🇦",
+    "region": "Europe",
+    "subregion": "Southern Europe",
+    "capital": "Vatican City",
+    "population": 451,
+    "area": 0.44,
+    "languages": "Italian, Latin",
+    "currency": "Euro (€)",
+    "timezone": "UTC+01:00",
+    "cca2": "va"
   },
   {
     "cca3": "VEN",
