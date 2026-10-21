@@ -1,6 +1,7 @@
 import { state } from "./state.js";
-import { $, escapeHtml, getFlagCca2, flagImg } from "./util.js";
+import { $, escapeHtml, getFlagCca2, flagImg, rating } from "./util.js";
 import { openDetail } from "./detail.js";
+import { view } from "./travellers.js";
 
 let listFilter = "visited";
 let listSearch = "";
@@ -26,14 +27,9 @@ function closeList() {
 function renderList() {
   if (!listOpen) return;
   const body = $("list-body");
-  const countries = Object.keys(state.statuses)
-    .filter((cca3) => state.statuses[cca3] === listFilter)
-    .map((cca3) => ({
-      cca3,
-      info: state.lookup[cca3],
-      details: state.details[cca3] || {},
-    }))
-    .filter((x) => x.info)
+  const countries = Object.keys(state.trips)
+    .map((cca3) => ({ cca3, info: state.lookup[cca3], v: view(cca3) }))
+    .filter((x) => x.v?.status === listFilter)
     .filter(
       (x) => !listSearch || x.info.name.toLowerCase().includes(listSearch),
     )
@@ -50,12 +46,17 @@ function renderList() {
   }
 
   body.innerHTML = countries
-    .map(({ cca3, info, details }) => {
+    .map(({ cca3, info, v }) => {
+      const ds = v.who.map((i) => state.trips[cca3][i]);
+      const rs = ds.map((d) => rating(d.rating)).filter(Boolean);
       const stars = "★".repeat(
-        Math.max(0, Math.min(5, parseInt(details.rating) || 0)),
+        rs.length ? Math.round(rs.reduce((a, b) => a + b) / rs.length) : 0,
       );
       const sub = escapeHtml(
-        [details.year, details.notes].filter(Boolean).join(" · "),
+        ds
+          .flatMap((d) => [d.year, d.notes])
+          .filter(Boolean)
+          .join(" · "),
       );
       const cca2 = getFlagCca2(cca3);
       const flagHtml = cca2

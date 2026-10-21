@@ -3,6 +3,7 @@ import { state } from "./state.js";
 import { $, isMobile } from "./util.js";
 import { openDetail, closeDetail } from "./detail.js";
 import { closeStats } from "./stats.js";
+import { STATUSES, view, anyStatus } from "./travellers.js";
 
 // Dot when the largest landmass is under DOT_AREA px² on a DOT_REF_W-wide map.
 // Fixed width on purpose: every screen gets the same list.
@@ -42,9 +43,9 @@ export async function buildMap() {
   // Smaller dots on narrow maps, so they don't bury their neighbours; status
   // dots shrink less, to stay clearly visible.
   const shrink = Math.min(1, Math.max(0.4, W / DOT_REF_W));
-  const rOf = (d) =>
-    DOT_R * (state.statuses[d.cca3] ? Math.max(0.7, shrink) : shrink);
-  const dotList = dotData(features, path, proj, W, rOf);
+  const r = (has) => DOT_R * (has ? Math.max(0.7, shrink) : shrink);
+  const rOf = (d) => r(view(d.cca3));
+  const dotList = dotData(features, path, proj, W, (d) => r(anyStatus(d.cca3)));
   const addDots = (layer) =>
     layer.selectAll("circle").data(dotList).enter().append("circle");
   // Land under the dots: shows over sea, hidden under any country it overlaps.
@@ -135,7 +136,7 @@ function dotData(features, path, proj, W, rOf) {
     .filter((cca3) => AT[cca3] || big[cca3]?.sr * s * s < 2 * DOT_AREA)
     .map((cca3) => ({ cca3, area: AT[cca3] ? 0 : path.area(big[cca3]) }))
     .filter((d) => d.area * ref * ref < DOT_AREA)
-    .sort((a, b) => !!state.statuses[a.cca3] - !!state.statuses[b.cca3]);
+    .sort((a, b) => anyStatus(a.cca3) - anyStatus(b.cca3));
   for (const d of dots) {
     [d.ax, d.ay] = anchorOf(d.cca3);
     [d.x, d.y] = [d.ax, d.ay];
@@ -189,7 +190,7 @@ function getCca3(numId) {
 function cls(cca3) {
   return (
     "country " +
-    (state.statuses[cca3] || "") +
+    (view(cca3)?.status || "") +
     (state.selected === cca3 ? " selected" : "")
   ).trim();
 }
@@ -212,8 +213,8 @@ export function refreshMap() {
 }
 
 function updateCounts() {
-  const v = Object.values(state.statuses);
-  for (const s of ["visited", "planned", "wishlist"])
+  const v = Object.keys(state.trips).map((c) => view(c)?.status);
+  for (const s of STATUSES)
     $(`count-${s}`).textContent = v.filter((x) => x === s).length;
 }
 

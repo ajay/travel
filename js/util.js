@@ -4,6 +4,8 @@ export const $ = (id) => document.getElementById(id);
 
 export const isMobile = () => window.innerWidth <= 640;
 
+export const rating = (r) => Math.max(0, Math.min(5, parseInt(r) || 0));
+
 export const cssVar = (name) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 

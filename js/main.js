@@ -6,6 +6,7 @@ import { initStats, renderStats } from "./stats.js";
 import { initList } from "./list.js";
 import { initSearch } from "./search.js";
 import { initExport } from "./export.js";
+import { load } from "./travellers.js";
 
 initMap();
 initDetail();
@@ -15,11 +16,11 @@ initList();
 initSearch();
 initExport();
 
-const [countries, data] = await Promise.all([
+const [countries, [data, problem]] = await Promise.all([
   fetch("./countries.json").then((r) => r.json()),
   fetch("./data.json")
-    .then((r) => (r.ok ? r.json() : { statuses: {}, details: {} }))
-    .catch(() => ({ statuses: {}, details: {} })),
+    .then(async (r) => (r.ok ? [await r.json()] : [null, `HTTP ${r.status}`]))
+    .catch((e) => [null, `unreadable (${e})`]),
 ]);
 state.countries = countries;
 state.sortedCountries = [...countries].sort((a, b) =>
@@ -29,19 +30,8 @@ for (const c of countries) {
   state.lookup[c.cca3] = c;
   if (c.cca2) state.cca3ToCca2[c.cca3] = c.cca2.toLowerCase();
 }
-const ignored = [];
-for (const [cca3, s] of Object.entries(data.statuses || {})) {
-  if (!Object.hasOwn(state.lookup, cca3))
-    ignored.push(`statuses.${cca3} (unknown code)`);
-  else if (!["visited", "planned", "wishlist"].includes(s))
-    ignored.push(`statuses.${cca3}: ${JSON.stringify(s)} (unknown status)`);
-  else state.statuses[cca3] = s;
-}
-state.details = data.details || {};
-for (const cca3 of Object.keys(state.details))
-  if (!Object.hasOwn(state.lookup, cca3))
-    ignored.push(`details.${cca3} (unknown code)`);
-if (ignored.length) console.warn(`data.json: ignoring ${ignored.join(", ")}`);
+const warning = problem || load(data);
+if (warning) console.warn(`data.json: ${warning}`);
 
 await buildMap();
 refreshMap();

@@ -1,15 +1,15 @@
 {
-  "statuses": {
-    "KHM": "visited",
-    "CAN": "visited",
-    "DEU": "visited",
-    "IND": "visited",
-    "KOR": "visited",
-    "MYS": "visited",
-    "MDV": "visited",
-    "MEX": "visited",
-    "SGP": "visited",
-    "CHE": "visited"
-  },
-  "details": {}
+  "travellers": ["ajay"],
+  "countries": {
+    "KHM": { "ajay": "visited" },
+    "CAN": { "ajay": "visited" },
+    "DEU": { "ajay": "visited" },
+    "IND": { "ajay": "visited" },
+    "KOR": { "ajay": "visited" },
+    "MYS": { "ajay": "visited" },
+    "MDV": { "ajay": "visited" },
+    "MEX": { "ajay": "visited" },
+    "SGP": { "ajay": "visited" },
+    "CHE": { "ajay": "visited" }
+  }
 }

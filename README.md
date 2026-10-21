@@ -12,17 +12,26 @@ Edit `data.json` and push to `main`; GitHub Pages redeploys.
 
 ```json
 {
-  "statuses": { "IND": "visited", "JPN": "planned", "NZL": "wishlist" },
-  "details": {
-    "IND": { "rating": 5, "year": "2024", "notes": "Delhi and Agra." }
+  "travellers": ["ajay"],
+  "countries": {
+    "IND": {
+      "ajay": {
+        "status": "visited",
+        "rating": 5,
+        "year": "2024",
+        "notes": "Delhi and Agra."
+      }
+    },
+    "JPN": { "ajay": "planned" },
+    "NZL": { "ajay": "wishlist" }
   }
 }
 ```
 
-- Keys are ISO 3166-1 alpha-3 codes, as listed in `countries.json`.
-- Statuses are `visited`, `planned` or `wishlist`.
-- `details` is optional, and so is each of `rating` (1–5), `year` and `notes`.
-- Unknown codes or statuses are ignored and listed in a browser-console warning.
+- `travellers` lists everyone on the map. `countries` is keyed by ISO 3166-1 alpha-3 codes, as listed in `countries.json`.
+- Each traveller's entry is a status (`visited`, `planned` or `wishlist`), or an object with any of `status`, `rating` (1–5), `year` and `notes`.
+- A country-level `notes` (next to the travellers) is a shared note, e.g. for a trip taken together.
+- Unknown codes, travellers, statuses or fields are ignored and listed in a browser-console warning.
 
 ## Development
 

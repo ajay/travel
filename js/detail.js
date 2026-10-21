@@ -1,34 +1,54 @@
 import { state } from "./state.js";
-import { $, escapeHtml, getFlagCca2, flagImg, swipeToClose } from "./util.js";
+import {
+  $,
+  escapeHtml,
+  getFlagCca2,
+  flagImg,
+  swipeToClose,
+  rating,
+} from "./util.js";
 import { refreshMap } from "./map.js";
 import { closeStats } from "./stats.js";
 import { resetWiki } from "./wiki.js";
+import { view } from "./travellers.js";
 
 const cell = (label, value) =>
   `<div class="data-cell"><div class="data-cell-label">${label}</div><div class="data-cell-value">${value}</div></div>`;
 
+const notes = (label, text) =>
+  `<div class="my-notes-wrap"><div class="data-cell-label">${label}</div><div class="my-notes">${escapeHtml(text)}</div></div>`;
+
 export function renderMyData(cca3) {
-  const status = state.statuses[cca3];
-  const d = state.details[cca3];
-  if (!status && !d) return "";
+  const v = view(cca3);
+  const t = state.trips[cca3] || [];
+  const who = v ? v.who : Object.keys(t).map(Number);
+  const shared = state.notes[cca3];
+  if (!who.length && !shared) return "";
+  const by = (i) =>
+    state.travellers.length > 1 ? ` · ${escapeHtml(state.travellers[i])}` : "";
   const parts = ['<div class="panel-section-label">travels</div>'];
-  if (status)
-    parts.push(
-      cell("status", `<span class="my-status-pill ${status}">${status}</span>`),
-    );
-  const r = Math.max(0, Math.min(5, parseInt(d?.rating) || 0));
-  if (r)
+  if (v)
     parts.push(
       cell(
-        "rating",
-        `<span class="my-rating">${"★".repeat(r)}<span class="dim">${"★".repeat(5 - r)}</span></span>`,
+        "status",
+        `<span class="my-status-pill ${v.status}">${v.status}</span>`,
       ),
     );
-  if (d?.year) parts.push(cell("year visited", escapeHtml(String(d.year))));
-  if (d?.notes)
-    parts.push(
-      `<div class="my-notes-wrap"><div class="data-cell-label">notes</div><div class="my-notes">${escapeHtml(d.notes)}</div></div>`,
-    );
+  for (const i of who) {
+    const d = t[i];
+    const r = rating(d.rating);
+    if (r)
+      parts.push(
+        cell(
+          `rating${by(i)}`,
+          `<span class="my-rating">${"★".repeat(r)}<span class="dim">${"★".repeat(5 - r)}</span></span>`,
+        ),
+      );
+    if (d.year)
+      parts.push(cell(`year visited${by(i)}`, escapeHtml(String(d.year))));
+    if (d.notes) parts.push(notes(`notes${by(i)}`, d.notes));
+  }
+  if (shared) parts.push(notes("shared notes", shared));
   return parts.join("");
 }
 

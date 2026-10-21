@@ -1,6 +1,7 @@
 import { state } from "./state.js";
 import { $, swipeToClose } from "./util.js";
 import { closeDetail } from "./detail.js";
+import { view } from "./travellers.js";
 
 const CONTINENT_COLORS = {
   Africa: "var(--orange)",
@@ -13,8 +14,8 @@ const CONTINENT_COLORS = {
 let statsOpen = false;
 
 function calcStats() {
-  const visitedCca3 = Object.keys(state.statuses).filter(
-    (k) => state.statuses[k] === "visited",
+  const visitedCca3 = Object.keys(state.trips).filter(
+    (k) => view(k)?.status === "visited",
   );
   const total = visitedCca3.length;
   const byContinent = {};

@@ -23,11 +23,17 @@ The site is served under the `/travel/` subpath, so every URL must be relative (
 - `style.css`: all styles. The palette lives in `:root` variables.
 - `countries.json`: 196 countries (cca3, ccn3, cca2, name, flag, region, …). World and continent totals are
   computed from it.
-- `data.json`: `{ "statuses": { "IND": "visited" }, "details": { "IND": { "rating": 5, "year": "2024", "notes": "…" } } }`.
-  - Keys are cca3 codes; statuses are `visited`, `planned` or `wishlist`; `details` is optional.
-  - `js/main.js` validates it at load: unknown codes or statuses are ignored and listed in one `console.warn`.
+- `data.json`: `{ "travellers": ["ajay"], "countries": { "IND": { "ajay": { "status": "visited", "rating": 5, "year": "2024", "notes": "…" }, "notes": "…" } } }`.
+  - `countries` keys are cca3 codes. Inside each, a key is a traveller or `notes` (shared; reserved). A traveller's
+    value is a bare status (`visited`, `planned` or `wishlist`) or `{ status?, rating?, year?, notes? }`.
+  - Names are trimmed, matched case-insensitively and stored lowercase. Code finds them by index in
+    `state.travellers`, never as object keys.
+  - `js/travellers.js` validates it at load: anything unknown or mistyped is ignored and listed in one
+    `console.warn`. Its `view(cca3)` (the furthest status among the shown travellers) feeds the map, counts, list
+    and stats.
 - `js/`, one module per concern:
-  - `main`: bootstrap and data validation;
+  - `main`: bootstrap; fetches the data and reports load problems;
+  - `travellers`: data.json validation and `view()`/`shown()`/`anyStatus()`;
   - `state`: the single shared mutable object (mutate its properties, never reassign imports);
   - `map`: TopoJSON map, dots for tiny countries, territories, zoom;
   - `detail`, `stats`, `list`, `search`, `wiki`, `export`, `util`, `favicon`.
