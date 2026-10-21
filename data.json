@@ -19,6 +19,7 @@
     "BHS": { "ajay": "visited" },
     "JAM": { "ajay": "visited" },
     "FRA": { "ajay": "visited", "samantha": "visited" },
-    "TUR": { "ajay": "visited" }
+    "TUR": { "ajay": "visited" },
+    "ESP": { "samantha": "visited" }
   }
 }
