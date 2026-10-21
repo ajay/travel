@@ -654,6 +654,21 @@ html.pair #map-svg circle.country.wishlist:not(.selected):hover {
   line-height: 1.6;
   white-space: pre-wrap;
 }
+/* Two or more travellers: a row per traveller, details indented below. */
+.traveller-row .data-cell-label {
+  color: var(--text);
+}
+.sub .data-cell-label,
+.my-notes-wrap.sub .my-notes {
+  padding-left: 12px;
+}
+.none,
+.off .data-cell-label,
+.off .data-cell-value,
+.off .my-rating,
+.off .my-notes {
+  color: var(--text-dim);
+}
 
 /* STATS PANEL */
 .stats {

@@ -10,22 +10,46 @@ import {
 import { refreshMap } from "./map.js";
 import { closeStats } from "./stats.js";
 import { resetWiki } from "./wiki.js";
-import { view } from "./travellers.js";
+import { view, shown, ownStep } from "./travellers.js";
 
-const cell = (label, value) =>
-  `<div class="data-cell"><div class="data-cell-label">${label}</div><div class="data-cell-value">${value}</div></div>`;
+const cell = (label, value, cls = "") =>
+  `<div class="data-cell${cls && ` ${cls}`}"><div class="data-cell-label">${label}</div><div class="data-cell-value">${value}</div></div>`;
 
-const notes = (label, text) =>
-  `<div class="my-notes-wrap"><div class="data-cell-label">${label}</div><div class="my-notes">${escapeHtml(text)}</div></div>`;
+const notes = (label, text, cls = "") =>
+  `<div class="my-notes-wrap${cls && ` ${cls}`}"><div class="data-cell-label">${label}</div><div class="my-notes">${escapeHtml(text)}</div></div>`;
+
+const stars = (r) =>
+  `<span class="my-rating">${"★".repeat(r)}<span class="dim">${"★".repeat(5 - r)}</span></span>`;
+
+// Two or more travellers: a row per traveller (hidden ones dimmed), then the shared note.
+function travellerRows(t, shared) {
+  if (!t.some(Boolean) && !shared) return "";
+  const s = shown();
+  const parts = ['<div class="panel-section-label">travels</div>'];
+  state.travellers.forEach((name, i) => {
+    const d = t[i] || {};
+    const off = s.includes(i) ? "" : " off";
+    const status = d.status
+      ? `<span class="${["my-status-pill", d.status, ownStep(i, s)].join(" ").trim()}">${d.status}</span>`
+      : '<span class="none">—</span>';
+    parts.push(cell(escapeHtml(name), status, `traveller-row${off}`));
+    const r = rating(d.rating);
+    if (r) parts.push(cell("rating", stars(r), `sub${off}`));
+    if (d.year)
+      parts.push(cell("year", escapeHtml(String(d.year)), `sub${off}`));
+    if (d.notes) parts.push(notes("notes", d.notes, `sub${off}`));
+  });
+  if (shared) parts.push(notes("shared notes", shared));
+  return parts.join("");
+}
 
 export function renderMyData(cca3) {
-  const v = view(cca3);
   const t = state.trips[cca3] || [];
-  const who = v ? v.who : Object.keys(t).map(Number);
   const shared = state.notes[cca3];
+  if (state.travellers.length > 1) return travellerRows(t, shared);
+  const v = view(cca3);
+  const who = v ? v.who : Object.keys(t).map(Number);
   if (!who.length && !shared) return "";
-  const by = (i) =>
-    state.travellers.length > 1 ? ` · ${escapeHtml(state.travellers[i])}` : "";
   const parts = ['<div class="panel-section-label">travels</div>'];
   if (v)
     parts.push(
@@ -37,16 +61,9 @@ export function renderMyData(cca3) {
   for (const i of who) {
     const d = t[i];
     const r = rating(d.rating);
-    if (r)
-      parts.push(
-        cell(
-          `rating${by(i)}`,
-          `<span class="my-rating">${"★".repeat(r)}<span class="dim">${"★".repeat(5 - r)}</span></span>`,
-        ),
-      );
-    if (d.year)
-      parts.push(cell(`year visited${by(i)}`, escapeHtml(String(d.year))));
-    if (d.notes) parts.push(notes(`notes${by(i)}`, d.notes));
+    if (r) parts.push(cell("rating", stars(r)));
+    if (d.year) parts.push(cell("year visited", escapeHtml(String(d.year))));
+    if (d.notes) parts.push(notes("notes", d.notes));
   }
   if (shared) parts.push(notes("shared notes", shared));
   return parts.join("");
