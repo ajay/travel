@@ -30,8 +30,19 @@ for (const c of countries) {
   state.lookup[c.cca3] = c;
   if (c.cca2) state.cca3ToCca2[c.cca3] = c.cca2.toLowerCase();
 }
-state.statuses = data.statuses || {};
+const ignored = [];
+for (const [cca3, s] of Object.entries(data.statuses || {})) {
+  if (!Object.hasOwn(state.lookup, cca3))
+    ignored.push(`statuses.${cca3} (unknown code)`);
+  else if (!["visited", "planned", "wishlist"].includes(s))
+    ignored.push(`statuses.${cca3}: ${JSON.stringify(s)} (unknown status)`);
+  else state.statuses[cca3] = s;
+}
 state.details = data.details || {};
+for (const cca3 of Object.keys(state.details))
+  if (!Object.hasOwn(state.lookup, cca3))
+    ignored.push(`details.${cca3} (unknown code)`);
+if (ignored.length) console.warn(`data.json: ignoring ${ignored.join(", ")}`);
 
 await buildMap();
 refreshMap();

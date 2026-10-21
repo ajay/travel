@@ -22,8 +22,8 @@ export function renderMyData(cca3) {
       `<div style="margin-bottom:10px"><span class="my-status-pill ${status}">${STATUS_LABEL[status] || status}</span></div>`,
     );
   }
-  if (d?.rating) {
-    const r = Math.max(0, Math.min(5, parseInt(d.rating) || 0));
+  const r = Math.max(0, Math.min(5, parseInt(d?.rating) || 0));
+  if (r) {
     const stars =
       "★".repeat(r) + `<span class="dim">${"★".repeat(5 - r)}</span>`;
     parts.push(

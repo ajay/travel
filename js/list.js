@@ -1,5 +1,5 @@
 import { state } from "./state.js";
-import { $, getFlagCca2, flagImg } from "./util.js";
+import { $, escapeHtml, getFlagCca2, flagImg } from "./util.js";
 import { openDetail } from "./detail.js";
 
 let listFilter = "visited";
@@ -56,8 +56,12 @@ function renderList() {
   };
   body.innerHTML = countries
     .map(({ cca3, info, details }) => {
-      const stars = details.rating ? "★".repeat(details.rating) : "";
-      const sub = [details.year, details.notes].filter(Boolean).join(" · ");
+      const stars = "★".repeat(
+        Math.max(0, Math.min(5, parseInt(details.rating) || 0)),
+      );
+      const sub = escapeHtml(
+        [details.year, details.notes].filter(Boolean).join(" · "),
+      );
       const cca2 = getFlagCca2(cca3);
       const flagHtml = cca2
         ? flagImg(

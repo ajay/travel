@@ -89,7 +89,7 @@ function updateCounts() {
 
 export function zoomToCountry(cca3) {
   const { svg, zoom } = state;
-  const el = document.querySelector(`[data-cca3="${cca3}"]`);
+  const el = $("map-svg").querySelector(`[data-cca3="${cca3}"]`);
   if (el && zoom && svg) {
     const b = el.getBBox();
     const W = $("map-svg").clientWidth;
