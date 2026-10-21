@@ -1,4 +1,5 @@
 import { state } from "./state.js";
+import { escapeHtml } from "./util.js";
 
 export const STATUSES = ["visited", "planned", "wishlist"];
 const FIELDS = ["status", "year", "rating", "notes"];
@@ -130,9 +131,57 @@ export function whoLabel({ who }, s = shown()) {
 
 export const anyStatus = (cca3) => !!state.trips[cca3]?.some((t) => t?.status);
 
+// With exactly two shown, a traveller's own step; else "".
+export const ownStep = (i, s = shown()) =>
+  s.length === 2 && s.includes(i) ? `s${s.indexOf(i) + 1}` : "";
+
+const strip = (step) =>
+  STATUSES.map((s) => `<i class="${s} ${step}"></i>`).join("");
+
+// Header toggles, one per traveller (only with two or more).
+export function initTravellers(onChange) {
+  const box = document.getElementById("travellers");
+  if (state.travellers.length > 1) {
+    box.innerHTML =
+      state.travellers
+        .map(
+          (n, i) =>
+            `<button class="traveller" data-i="${i}"><span class="strip" aria-hidden="true"></span>${escapeHtml(n)}</button>`,
+        )
+        .join("") +
+      `<span class="traveller-both"><span class="strip" aria-hidden="true">${strip("s0")}</span>both</span>`;
+    box.addEventListener("click", (e) => {
+      const b = e.target.closest(".traveller");
+      if (!b) return;
+      const i = +b.dataset.i;
+      if (state.on[i] && shown().length === 1) return;
+      state.on[i] = !state.on[i];
+      sync();
+      onChange();
+    });
+  }
+  sync();
+}
+
 // html.multi: two or more travellers; html.pair: exactly two shown.
 export function sync() {
   const c = document.documentElement.classList;
+  const s = shown();
   c.toggle("multi", state.travellers.length > 1);
-  c.toggle("pair", shown().length === 2);
+  c.toggle("pair", s.length === 2);
+  for (const b of document.querySelectorAll(".traveller")) {
+    const i = +b.dataset.i;
+    const on = !!state.on[i];
+    const name = state.travellers[i];
+    const last = on && s.length === 1;
+    b.setAttribute("aria-pressed", on);
+    b.setAttribute("aria-disabled", last);
+    b.title = last
+      ? `${name} is the only traveller shown`
+      : `${on ? "hide" : "show"} ${name}`;
+    b.querySelector(".strip").innerHTML = strip(ownStep(i, s));
+  }
+  document
+    .querySelector(".traveller-both")
+    ?.toggleAttribute("hidden", s.length !== 2);
 }

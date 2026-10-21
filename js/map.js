@@ -16,6 +16,7 @@ const HIT_R = 8;
 const AT = { TUV: [179.2, -8.5], KIR: [173.0, 1.4] };
 let anchorOf = () => null;
 let dotLayer = null;
+let resizeDots = () => {};
 // The lifted selected paths, each with its old next sibling.
 let lifted = [];
 
@@ -100,6 +101,7 @@ export async function buildMap() {
     });
   };
   sizeDots(1);
+  resizeDots = () => sizeDots(d3.zoomTransform(svg.node()).k);
   // Hatch stripes keep their angle and on-screen size at any zoom.
   const hatch = svg.selectAll("pattern");
   state.zoom = d3
@@ -203,6 +205,11 @@ function cls(cca3) {
     (v ? `${v.status} ${step(v)}`.trim() : "") +
     (state.selected === cca3 ? " selected" : "")
   ).trim();
+}
+
+// Dot sizes follow the shown travellers.
+export function refreshDots() {
+  resizeDots();
 }
 
 export function refreshMap() {

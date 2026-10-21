@@ -16,7 +16,7 @@ function openList() {
   $("mob-list-btn").classList.add("active");
 }
 
-function closeList() {
+export function closeList() {
   listOpen = false;
   $("list-overlay").classList.remove("show");
   $("list-panel").classList.remove("open");
@@ -24,7 +24,7 @@ function closeList() {
   $("mob-list-btn").classList.remove("active");
 }
 
-function renderList() {
+export function renderList() {
   if (!listOpen) return;
   const body = $("list-body");
   const countries = Object.keys(state.trips)

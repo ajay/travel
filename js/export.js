@@ -1,9 +1,11 @@
 import { $, cssVar } from "./util.js";
+import { closeList } from "./list.js";
 
 export function initExport() {
   const btn = $("export-btn");
   const label = btn.querySelector("span");
   btn.addEventListener("click", async () => {
+    closeList();
     btn.classList.add("loading");
     label.textContent = "generating…";
 
@@ -26,7 +28,10 @@ export function initExport() {
         allowTaint: true,
         logging: false,
         // html2canvas drops CSS filters and ::placeholder; leave controls out.
-        ignoreElements: (el) => el.matches(".search-wrap, .zoom-controls"),
+        ignoreElements: (el) =>
+          el.matches(
+            ".search-wrap, .zoom-controls, .list-panel, .list-overlay",
+          ),
       });
 
       const ctx = canvas.getContext("2d");

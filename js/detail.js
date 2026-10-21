@@ -82,6 +82,11 @@ export function openDetail(cca3) {
   $("sheet-overlay").classList.add("show");
 }
 
+export function refreshDetail() {
+  if (state.selected && $("detail").classList.contains("open"))
+    $("detail-mydata").innerHTML = renderMyData(state.selected);
+}
+
 export function closeDetail() {
   $("detail").classList.remove("open");
   $("sheet-overlay").classList.remove("show");

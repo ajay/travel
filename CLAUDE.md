@@ -33,7 +33,7 @@ The site is served under the `/travel/` subpath, so every URL must be relative (
     and stats.
 - `js/`, one module per concern:
   - `main`: bootstrap; fetches the data and reports load problems;
-  - `travellers`: data.json validation and `view()`/`shown()`/`anyStatus()`;
+  - `travellers`: data.json validation, `view()`/`shown()`/`anyStatus()`, and the header toggles;
   - `state`: the single shared mutable object (mutate its properties, never reassign imports);
   - `map`: TopoJSON map, dots for tiny countries, territories, zoom;
   - `detail`, `stats`, `list`, `search`, `wiki`, `export`, `util`, `favicon`.
@@ -53,6 +53,9 @@ make screenshot   # regenerate screenshot.png (the README image) with headless C
 
 ## Watch out for
 
+- **Two or more travellers** add a header toggle row (`html.multi`; `html.pair` when exactly two are shown). At
+  ≤1000px it becomes a second header row and `--header-h` grows. `buildMap()` measures the map once, so the header
+  must be final before it runs.
 - **One UI for both form factors.** `#detail` and `#stats` are single elements that the `max-width: 640px`
   media query turns into bottom sheets. Check every UI change at desktop width and at ≤640px.
 - **Three country ID systems.**

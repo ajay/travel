@@ -1,12 +1,12 @@
 import { state } from "./state.js";
-import { buildMap, refreshMap, initMap } from "./map.js";
-import { initDetail } from "./detail.js";
+import { buildMap, refreshMap, refreshDots, initMap } from "./map.js";
+import { initDetail, refreshDetail } from "./detail.js";
 import { initWiki } from "./wiki.js";
 import { initStats, renderStats } from "./stats.js";
-import { initList } from "./list.js";
+import { initList, renderList } from "./list.js";
 import { initSearch } from "./search.js";
 import { initExport } from "./export.js";
-import { load, sync } from "./travellers.js";
+import { load, initTravellers } from "./travellers.js";
 
 initMap();
 initDetail();
@@ -32,7 +32,14 @@ for (const c of countries) {
 }
 const warning = problem || load(data);
 if (warning) console.warn(`data.json: ${warning}`);
-sync();
+// The toggle row can grow the header, and buildMap measures the map once.
+initTravellers(() => {
+  refreshMap();
+  refreshDots();
+  renderStats();
+  renderList();
+  refreshDetail();
+});
 
 await buildMap();
 refreshMap();

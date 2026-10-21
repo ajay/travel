@@ -1,6 +1,7 @@
 import { state } from "./state.js";
 import { $, swipeToClose } from "./util.js";
 import { closeDetail } from "./detail.js";
+import { closeList } from "./list.js";
 import { view } from "./travellers.js";
 
 const CONTINENT_COLORS = {
@@ -77,6 +78,7 @@ export function closeStats() {
 
 function toggleStats() {
   if (statsOpen) return closeStats();
+  closeList();
   closeDetail();
   renderStats();
   setStatsOpen(true);

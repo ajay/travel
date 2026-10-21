@@ -183,6 +183,77 @@ header {
   pointer-events: none;
 }
 
+/* TRAVELLER TOGGLES (two or more travellers) */
+.travellers {
+  display: none;
+}
+html.multi header {
+  justify-content: flex-start;
+}
+html.multi .header-right {
+  margin-left: auto;
+}
+html.multi .travellers {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-left: 24px;
+  border-left: 1px solid var(--line);
+}
+.traveller,
+.traveller-both {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.traveller {
+  padding: 0 10px;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.traveller:hover {
+  border-color: var(--text-muted);
+}
+.traveller[aria-pressed="false"] {
+  color: var(--text-dim);
+  border-color: var(--line);
+}
+.traveller[aria-disabled="true"] {
+  cursor: default;
+}
+.traveller-both {
+  color: var(--text-muted);
+}
+.traveller-both[hidden] {
+  display: none;
+}
+.strip {
+  display: flex;
+  gap: 1px;
+}
+.strip i {
+  width: 5px;
+  height: 10px;
+  background: var(--c);
+}
+.strip i.wishlist {
+  background: var(--swatch);
+}
+.traveller[aria-pressed="false"] .strip i {
+  background: none;
+  outline: 1px solid var(--c);
+  outline-offset: -1px;
+}
+
 /* STATUS COLOURS: --c (and --swatch) per status and pair step */
 .visited {
   --c: var(--visited);
@@ -1240,6 +1311,73 @@ html.pair #map-svg circle.country.wishlist:not(.selected):hover {
   .search-input,
   .list-search {
     font-size: 16px;
+  }
+}
+
+/* TRAVELLER TOGGLES: layout. Overlays start under the header so the
+   toggles stay reachable while the list or a sheet is open. */
+html.multi .list-overlay,
+html.multi .sheet-overlay {
+  top: calc(var(--header-h) + env(safe-area-inset-top));
+}
+@media (max-width: 1200px) {
+  html.multi .header-right button {
+    width: 32px;
+    padding: 0;
+    gap: 0;
+    justify-content: center;
+    font-size: 0;
+  }
+}
+@media (max-width: 1000px) {
+  html.multi {
+    --header-h: 100px;
+  }
+  html.multi header {
+    flex-wrap: wrap;
+    align-content: flex-start;
+    row-gap: 0;
+  }
+  html.multi .header-left,
+  html.multi .header-right {
+    height: 59px;
+  }
+  html.multi .travellers {
+    order: 3;
+    flex-basis: calc(100% + 48px);
+    height: 41px;
+    margin: 0 -24px;
+    padding: 0 24px;
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+}
+@media (max-width: 640px) {
+  html.multi .travellers {
+    flex-basis: calc(100% + 32px);
+    margin: 0 -16px;
+    padding: 0 16px;
+    overflow-x: auto;
+  }
+  html.multi .panel,
+  html.multi .list-panel {
+    max-height: min(
+      90dvh,
+      calc(100dvh - var(--header-h) - env(safe-area-inset-top))
+    );
+  }
+  html.multi .list-panel {
+    height: min(
+      90dvh,
+      calc(100dvh - var(--header-h) - env(safe-area-inset-top))
+    );
+  }
+}
+@media (max-width: 359px) {
+  html.multi .travellers {
+    flex-basis: calc(100% + 24px);
+    margin: 0 -12px;
+    padding: 0 12px;
   }
 }
 ::-webkit-scrollbar {
