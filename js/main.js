@@ -6,7 +6,7 @@ import { initStats, renderStats } from "./stats.js";
 import { initList } from "./list.js";
 import { initSearch } from "./search.js";
 import { initExport } from "./export.js";
-import { load } from "./travellers.js";
+import { load, sync } from "./travellers.js";
 
 initMap();
 initDetail();
@@ -32,6 +32,7 @@ for (const c of countries) {
 }
 const warning = problem || load(data);
 if (warning) console.warn(`data.json: ${warning}`);
+sync();
 
 await buildMap();
 refreshMap();

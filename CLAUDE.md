@@ -60,7 +60,7 @@ make screenshot   # regenerate screenshot.png (the README image) with headless C
   - `cca2`: flagcdn URLs;
   - `ccn3`: TopoJSON feature ids, mapped through `countries.json`. Features with no match are territories:
     unclickable, with a name tooltip.
-- **Map colors come from CSS.** Paths and dot circles carry `country <status> [selected]` classes, and
+- **Map colors come from CSS.** Paths and dot circles carry `country <status> [s0|s1|s2] [selected]` classes, and
   `style.css` maps them to the palette. Don't hard-code colors in JS.
   - Countries smaller than `DOT_AREA` px² at the default zoom get a dot (constants at the top of `js/map.js`).
   - The wishlist hatch keeps a constant on-screen size, through the zoom handler.

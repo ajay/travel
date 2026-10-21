@@ -118,4 +118,21 @@ export function view(cca3) {
   return null;
 }
 
+// With exactly two shown: "s0" both, "s1"/"s2" the first/second alone; else "".
+export const step = ({ who }, s = shown()) =>
+  s.length !== 2 ? "" : who.length === 2 ? "s0" : `s${s.indexOf(who[0]) + 1}`;
+
+export function whoLabel({ who }, s = shown()) {
+  if (who.length > 1 && who.length === s.length)
+    return s.length === 2 ? "both" : "all";
+  return who.map((i) => state.travellers[i]).join(" + ");
+}
+
 export const anyStatus = (cca3) => !!state.trips[cca3]?.some((t) => t?.status);
+
+// html.multi: two or more travellers; html.pair: exactly two shown.
+export function sync() {
+  const c = document.documentElement.classList;
+  c.toggle("multi", state.travellers.length > 1);
+  c.toggle("pair", shown().length === 2);
+}

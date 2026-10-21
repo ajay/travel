@@ -29,6 +29,7 @@ Edit `data.json` and push to `main`; GitHub Pages redeploys.
 ```
 
 - `travellers` lists everyone on the map. `countries` is keyed by ISO 3166-1 alpha-3 codes, as listed in `countries.json`.
+- With two travellers shown, each colour comes in three shades: the lightest for both, then one for each traveller, in `travellers` order.
 - Each traveller's entry is a status (`visited`, `planned` or `wishlist`), or an object with any of `status`, `rating` (1–5), `year` and `notes`.
 - A country-level `notes` (next to the travellers) is a shared note, e.g. for a trip taken together.
 - Unknown codes, travellers, statuses or fields are ignored and listed in a browser-console warning.

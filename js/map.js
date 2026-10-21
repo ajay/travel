@@ -3,7 +3,7 @@ import { state } from "./state.js";
 import { $, isMobile } from "./util.js";
 import { openDetail, closeDetail } from "./detail.js";
 import { closeStats } from "./stats.js";
-import { STATUSES, view, anyStatus } from "./travellers.js";
+import { STATUSES, view, step, whoLabel, anyStatus } from "./travellers.js";
 
 // Dot when the largest landmass is under DOT_AREA px² on a DOT_REF_W-wide map.
 // Fixed width on purpose: every screen gets the same list.
@@ -100,7 +100,7 @@ export async function buildMap() {
     });
   };
   sizeDots(1);
-  // Hatch stripes keep their on-screen size at any zoom.
+  // Hatch stripes keep their angle and on-screen size at any zoom.
   const hatch = svg.selectAll("pattern");
   state.zoom = d3
     .zoom()
@@ -112,7 +112,9 @@ export async function buildMap() {
     .on("zoom", (e) => {
       g.attr("transform", e.transform);
       sizeDots(e.transform.k);
-      hatch.attr("patternTransform", `rotate(45) scale(${1 / e.transform.k})`);
+      hatch.attr("patternTransform", function () {
+        return `rotate(${this.dataset.rot ?? 45}) scale(${1 / e.transform.k})`;
+      });
     });
   svg.call(state.zoom);
 }
@@ -166,8 +168,15 @@ function hook(sel) {
 
 function showTip(event, d) {
   const tip = $("tooltip");
-  tip.textContent = state.lookup[d.cca3]?.name ?? d.properties?.name ?? "—";
-  tip.style.left = event.offsetX + 14 + "px";
+  const name = state.lookup[d.cca3]?.name ?? d.properties?.name ?? "—";
+  const v = d.cca3 && state.travellers.length > 1 && view(d.cca3);
+  tip.textContent = v ? `${name} · ${v.status} · ${whoLabel(v)}` : name;
+  // Left of the cursor where it would cross the right edge.
+  const x = event.offsetX + 14;
+  tip.style.left =
+    (x + tip.offsetWidth > tip.parentNode.clientWidth
+      ? event.offsetX - 14 - tip.offsetWidth
+      : x) + "px";
   tip.style.top = event.offsetY - 30 + "px";
   tip.classList.add("show");
 }
@@ -188,9 +197,10 @@ function getCca3(numId) {
 }
 
 function cls(cca3) {
+  const v = view(cca3);
   return (
     "country " +
-    (view(cca3)?.status || "") +
+    (v ? `${v.status} ${step(v)}`.trim() : "") +
     (state.selected === cca3 ? " selected" : "")
   ).trim();
 }

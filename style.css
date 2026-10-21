@@ -25,9 +25,22 @@
   --wishlist-ink: #8aaad4;
   --wishlist-hover: #adc3e1;
   --wishlist-bg: #141414;
-  /* Data URIs can't read variables: keep the stroke equal to --wishlist-ink. */
+  /* Data URIs can't read variables: keep each stroke equal to its ink. */
   --wishlist-swatch: var(--wishlist-bg)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M-1 1l2-2M0 4l4-4M3 5l2-2' stroke='%238aaad4' stroke-width='1.25'/%3E%3C/svg%3E");
+  /* Pair shades: 0 both, 1 and 2 the first and second traveller alone. */
+  --visited-0: #c5e299;
+  --visited-1: #a9ba91;
+  --visited-2: #8b957f;
+  --planned-0: #be9752;
+  --planned-1: #9c7e4c;
+  --planned-2: #856428;
+  --wishlist-ink-0: #b0d4ff;
+  --wishlist-ink-1: #8dadd7;
+  --wishlist-ink-2: #6882a4;
+  --wishlist-hatch-0: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M-1 1l2-2M-1 4l5-5M-1 7l8-8M2 7l5-5M5 7l2-2M-1 5l2 2M-1 2l5 5M-1-1l8 8M2-1l5 5M5-1l2 2' stroke='%23b0d4ff' stroke-width='0.75'/%3E%3C/svg%3E");
+  --wishlist-hatch-1: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M-1 1l2-2M-1 4l5-5M-1 7l8-8M2 7l5-5M5 7l2-2' stroke='%238dadd7' stroke-width='1'/%3E%3C/svg%3E");
+  --wishlist-hatch-2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M-1 5l2 2M-1 2l5 5M-1-1l8 8M2-1l5 5M5-1l2 2' stroke='%236882a4' stroke-width='1'/%3E%3C/svg%3E");
   --dot-ring: color-mix(in srgb, var(--text-muted) 50%, transparent);
   --accent: var(--aqua);
   --accent-dim: #3b5a55;
@@ -170,6 +183,48 @@ header {
   pointer-events: none;
 }
 
+/* STATUS COLOURS: --c (and --swatch) per status and pair step */
+.visited {
+  --c: var(--visited);
+}
+.planned {
+  --c: var(--planned);
+}
+.wishlist {
+  --c: var(--wishlist-ink);
+  --swatch: var(--wishlist-swatch);
+}
+.visited.s0 {
+  --c: var(--visited-0);
+}
+.visited.s1 {
+  --c: var(--visited-1);
+}
+.visited.s2 {
+  --c: var(--visited-2);
+}
+.planned.s0 {
+  --c: var(--planned-0);
+}
+.planned.s1 {
+  --c: var(--planned-1);
+}
+.planned.s2 {
+  --c: var(--planned-2);
+}
+.wishlist.s0 {
+  --c: var(--wishlist-ink-0);
+  --swatch: var(--wishlist-bg) var(--wishlist-hatch-0);
+}
+.wishlist.s1 {
+  --c: var(--wishlist-ink-1);
+  --swatch: var(--wishlist-bg) var(--wishlist-hatch-1);
+}
+.wishlist.s2 {
+  --c: var(--wishlist-ink-2);
+  --swatch: var(--wishlist-bg) var(--wishlist-hatch-2);
+}
+
 /* STATUS SWATCHES (header counts, detail status, list badges) */
 .stat-num::before,
 .my-status-pill::before,
@@ -178,6 +233,7 @@ header {
   height: 10px;
   flex-shrink: 0;
   border: 1px solid transparent;
+  background: var(--c);
 }
 .stat-num::before,
 .my-status-pill::before {
@@ -192,21 +248,48 @@ header {
   margin-right: 6px;
   vertical-align: 1px;
 }
-.stat-num.visited::before,
-.my-status-pill.visited::before,
-.list-item-badge.visited {
-  background: var(--visited);
-}
-.stat-num.planned::before,
-.my-status-pill.planned::before,
-.list-item-badge.planned {
-  background: var(--planned);
-}
 .stat-num.wishlist::before,
 .my-status-pill.wishlist::before,
 .list-item-badge.wishlist {
-  background: var(--wishlist-swatch);
-  border-color: var(--wishlist-ink);
+  background: var(--swatch);
+  border-color: var(--c);
+}
+/* A count covers every shade: a strip of steps 0 | 1 | 2. */
+html.pair .stat-num::before {
+  width: 17px;
+  height: 10px;
+  border: 0;
+  mask: linear-gradient(
+    90deg,
+    #000 5px,
+    transparent 0 6px,
+    #000 0 11px,
+    transparent 0 12px,
+    #000 0
+  );
+}
+html.pair .stat-num.visited::before {
+  background: linear-gradient(
+    90deg,
+    var(--visited-0) 6px,
+    var(--visited-1) 0 12px,
+    var(--visited-2) 0
+  );
+}
+html.pair .stat-num.planned::before {
+  background: linear-gradient(
+    90deg,
+    var(--planned-0) 6px,
+    var(--planned-1) 0 12px,
+    var(--planned-2) 0
+  );
+}
+html.pair .stat-num.wishlist::before {
+  background:
+    var(--wishlist-hatch-0) repeat-y,
+    var(--wishlist-hatch-1) 6px 0 repeat-y,
+    var(--wishlist-hatch-2) 12px 0 repeat-y,
+    var(--wishlist-bg);
 }
 
 /* MAP */
@@ -233,7 +316,7 @@ pattern rect {
   fill: var(--wishlist-bg);
 }
 pattern line {
-  stroke: var(--wishlist-ink);
+  stroke: var(--c);
 }
 .mesh,
 .country,
@@ -267,22 +350,28 @@ pattern line {
   stroke: var(--text);
   stroke-width: 1px;
 }
-.country.visited {
-  fill: var(--visited);
+.country:is(.visited, .planned) {
+  fill: var(--c);
 }
 .country.visited:hover {
   fill: var(--visited-hover);
-}
-.country.planned {
-  fill: var(--planned);
 }
 .country.planned:hover {
   fill: var(--planned-hover);
 }
 .country.wishlist {
   fill: url(#wishlist-hatch);
-  stroke: var(--wishlist-ink);
+  stroke: var(--c);
   stroke-width: 0.75px;
+}
+.country.wishlist.s0 {
+  fill: url(#wishlist-hatch-s0);
+}
+.country.wishlist.s1 {
+  fill: url(#wishlist-hatch-s1);
+}
+.country.wishlist.s2 {
+  fill: url(#wishlist-hatch-s2);
 }
 .country.wishlist:hover {
   stroke: var(--ring);
@@ -309,10 +398,15 @@ pattern line {
   fill-opacity: 0;
 }
 #map-svg circle.country.wishlist {
-  fill: var(--wishlist-ink);
+  fill: var(--c);
 }
 #map-svg circle.country.wishlist:not(.selected):hover {
   fill: var(--wishlist-hover);
+}
+/* Pair hover outlines only: a lighter fill would pass for another shade. */
+html.pair .country:is(.visited, .planned):hover,
+html.pair #map-svg circle.country.wishlist:not(.selected):hover {
+  fill: var(--c);
 }
 #map-svg circle.country:is(:hover, .selected, .visited, .planned, .wishlist) {
   fill-opacity: 1;
@@ -1036,6 +1130,15 @@ pattern line {
   }
   .country.wishlist {
     fill: url(#wishlist-hatch-sm);
+  }
+  .country.wishlist.s0 {
+    fill: url(#wishlist-hatch-s0-sm);
+  }
+  .country.wishlist.s1 {
+    fill: url(#wishlist-hatch-s1-sm);
+  }
+  .country.wishlist.s2 {
+    fill: url(#wishlist-hatch-s2-sm);
   }
   .search-wrap {
     bottom: calc(72px + env(safe-area-inset-bottom));
