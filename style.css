@@ -708,9 +708,14 @@ html.pair #map-svg circle.country.wishlist:not(.selected):hover {
 }
 .ring-fill {
   stroke: var(--visited);
-  transition: stroke-dasharray 1s var(--ease);
+  transition:
+    stroke-dasharray 1s var(--ease),
+    stroke-dashoffset 1s var(--ease);
   transform: rotate(-90deg);
   transform-origin: 50% 50%;
+}
+.ring-fill.visited {
+  stroke: var(--c);
 }
 .ring-text-wrap {
   flex: 1;
@@ -764,6 +769,55 @@ html.pair #map-svg circle.country.wishlist:not(.selected):hover {
 .cont-bar-fill {
   height: 100%;
   transition: width 1s var(--ease);
+}
+/* Two or more travellers shown: per-traveller rows and continent bars. */
+.who-stats {
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+.who-stats:empty {
+  display: none;
+}
+.who-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+.who-sw {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  background: var(--c, transparent);
+}
+.who-name {
+  flex: 1;
+}
+.who-n {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.cont-sub {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+}
+.cont-who {
+  width: 64px;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cont-sub .cont-bar-bg {
+  flex: 1;
+}
+.cont-bar-fill.visited {
+  background: var(--c);
 }
 
 /* TOOLTIP */
