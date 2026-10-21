@@ -1,7 +1,7 @@
 import { state } from "./state.js";
 import { $, escapeHtml, getFlagCca2, flagImg, rating } from "./util.js";
 import { openDetail } from "./detail.js";
-import { view } from "./travellers.js";
+import { view, shown, step, whoLabel } from "./travellers.js";
 
 let listFilter = "visited";
 let listSearch = "";
@@ -35,29 +35,56 @@ export function renderList() {
     )
     .sort((a, b) => a.info.name.localeCompare(b.info.name));
 
+  const multi = state.travellers.length > 1;
+  const s = shown();
   if (!countries.length) {
+    const hidden = multi && s.length < state.travellers.length;
     const labels = {
       visited: "visited countries",
       planned: "planned trips",
       wishlist: "wishlist countries",
     };
-    body.innerHTML = `<div class="list-empty">${listSearch ? "no matches." : `no ${labels[listFilter]} in data.json yet.`}</div>`;
+    const none = hidden
+      ? `no ${labels[listFilter]} for ${s.map((i) => escapeHtml(state.travellers[i])).join(" + ")}.`
+      : `no ${labels[listFilter]} in data.json yet.`;
+    body.innerHTML = `<div class="list-empty">${listSearch ? "no matches." : none}</div>`;
     return;
   }
 
   body.innerHTML = countries
     .map(({ cca3, info, v }) => {
-      const ds = v.who.map((i) => state.trips[cca3][i]);
+      const t = state.trips[cca3];
+      const ds = v.who.map((i) => t[i]);
       const rs = ds.map((d) => rating(d.rating)).filter(Boolean);
       const stars = "★".repeat(
         rs.length ? Math.round(rs.reduce((a, b) => a + b) / rs.length) : 0,
       );
+      // Several travellers: each year once, others' lower statuses, a lone
+      // traveller's notes, then the shared note.
       const sub = escapeHtml(
-        ds
-          .flatMap((d) => [d.year, d.notes])
+        (multi
+          ? [
+              ...new Set(
+                ds
+                  .map((d) => d.year)
+                  .filter(Boolean)
+                  .map(String),
+              ),
+              ...s
+                .filter((i) => !v.who.includes(i) && t[i]?.status)
+                .map((i) => `${state.travellers[i]} ${t[i].status}`),
+              v.who.length === 1 && ds[0].notes,
+              state.notes[cca3],
+            ]
+          : ds.flatMap((d) => [d.year, d.notes])
+        )
           .filter(Boolean)
           .join(" · "),
       );
+      const who =
+        multi && s.length > 1
+          ? `<div class="list-item-who">${escapeHtml(whoLabel(v, s))}</div>`
+          : "";
       const cca2 = getFlagCca2(cca3);
       const flagHtml = cca2
         ? flagImg(cca2, "w40", info.flag || "")
@@ -68,8 +95,8 @@ export function renderList() {
         <div class="list-item-name">${info.name}</div>
         ${sub ? `<div class="list-item-sub">${sub}</div>` : ""}
       </div>
-      ${stars ? `<div class="list-item-stars">${stars}</div>` : ""}
-      <div class="list-item-badge ${listFilter}"></div>
+      ${stars ? `<div class="list-item-stars">${stars}</div>` : ""}${who}
+      <div class="list-item-badge ${`${listFilter} ${step(v, s)}`.trim()}"></div>
     </div>`;
     })
     .join("");

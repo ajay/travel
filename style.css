@@ -1058,6 +1058,11 @@ html.pair #map-svg circle.country.wishlist:not(.selected):hover {
   flex-shrink: 0;
   letter-spacing: 1px;
 }
+.list-item-who {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
 
 /* WIKIPEDIA */
 .wiki-section {
