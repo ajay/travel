@@ -105,6 +105,6 @@ export function initExport() {
     }
 
     btn.classList.remove("loading");
-    label.textContent = "export png";
+    label.textContent = "png";
   });
 }

@@ -123,6 +123,14 @@ header {
   color: var(--accent);
   font-weight: 400;
 }
+.logo-host a {
+  color: inherit;
+  text-decoration: none;
+}
+.logo-host a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .stats-bar {
   display: flex;
   gap: 20px;
