@@ -21,15 +21,8 @@ export function initSearch() {
     res.innerHTML = hits
       .map((c) => {
         const cca2 = getFlagCca2(c.cca3);
-        const flagHtml = cca2
-          ? flagImg(
-              cca2,
-              "w40",
-              "width:20px;height:14px;object-fit:cover;border-radius:2px;vertical-align:middle;margin-right:6px",
-              c.flag || "",
-            )
-          : `<span style="margin-right:6px">${c.flag || ""}</span>`;
-        return `<div class="search-result-item" data-cca3="${c.cca3}" style="display:flex;align-items:center">${flagHtml}${c.name}</div>`;
+        const flag = cca2 ? flagImg(cca2, "w40", c.flag || "") : c.flag || "";
+        return `<div class="search-result-item" data-cca3="${c.cca3}"><span class="search-flag">${flag}</span>${c.name}</div>`;
       })
       .join("");
     res.classList.add("show");

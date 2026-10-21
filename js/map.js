@@ -14,6 +14,9 @@ const HIT_R = 8;
 // Pinned dots, never faded: TUV has no shape, KIR's capital is on Tarawa.
 const AT = { TUV: [179.2, -8.5], KIR: [173.0, 1.4] };
 let anchorOf = () => null;
+let dotLayer = null;
+// The lifted selected paths, each with its old next sibling.
+let lifted = [];
 
 export async function buildMap() {
   const world = await d3.json(
@@ -33,7 +36,7 @@ export async function buildMap() {
     .attr("y", -9999)
     .attr("width", 19998)
     .attr("height", 19998)
-    .attr("fill", "#0d1829");
+    .attr("class", "ocean");
   const features = topojson.feature(world, world.objects.countries).features;
   for (const f of features) f.cca3 = getCca3(f.id);
   // Smaller dots on narrow maps, so they don't bury their neighbours; status
@@ -58,12 +61,10 @@ export async function buildMap() {
     .call(hook);
   g.append("path")
     .datum(topojson.mesh(world, world.objects.countries, (a, b) => a !== b))
-    .attr("fill", "none")
-    .attr("stroke", "#1e2d45")
-    .attr("stroke-width", 0.5)
-    .attr("pointer-events", "none")
+    .attr("class", "mesh")
     .attr("d", path);
-  addDots(g.append("g").style("--dot-k", shrink))
+  dotLayer = g.append("g").style("--dot-k", shrink);
+  addDots(dotLayer)
     .attr("class", (d) => cls(d.cca3))
     .call(hook);
   const dots = g.selectAll("circle");
@@ -98,6 +99,8 @@ export async function buildMap() {
     });
   };
   sizeDots(1);
+  // Hatch stripes keep their on-screen size at any zoom.
+  const hatch = svg.selectAll("pattern");
   state.zoom = d3
     .zoom()
     .scaleExtent([1, 12])
@@ -108,6 +111,7 @@ export async function buildMap() {
     .on("zoom", (e) => {
       g.attr("transform", e.transform);
       sizeDots(e.transform.k);
+      hatch.attr("patternTransform", `rotate(45) scale(${1 / e.transform.k})`);
     });
   svg.call(state.zoom);
 }
@@ -194,6 +198,16 @@ export function refreshMap() {
   d3.selectAll(".country").attr("class", function () {
     return cls(this.getAttribute("data-cca3"));
   });
+  // Lift the selected shape over its neighbours' borders, but under the dots.
+  const sel = document.querySelectorAll("path.country.selected");
+  if (lifted.length && lifted[0][0] !== sel[0]) {
+    for (const [p, next] of lifted.reverse()) next.before(p);
+    lifted = [];
+  }
+  if (sel.length && !lifted.length && dotLayer) {
+    lifted = [...sel].map((p) => [p, p.nextSibling]);
+    dotLayer.node().before(...sel);
+  }
   updateCounts();
 }
 

@@ -6,12 +6,13 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#0a0f1e" />
+    <meta name="theme-color" content="#000" />
     <meta name="description" content="A static, read-only world travel map." />
-    <title>Atlas — My World Travel Map</title>
+    <title>ajay.engineer/travel</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
     <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -19,45 +20,28 @@
     <script type="module" src="./js/favicon.js"></script>
   </head>
   <body>
-    <div class="loading-overlay" id="loading">
-      <div class="loading-logo">Atlas</div>
-      <div class="loading-bar"><div class="loading-fill"></div></div>
-    </div>
-
     <header>
-      <div style="display: flex; align-items: center; gap: 20px">
-        <div class="logo">Atlas <span>World Travel Tracker</span></div>
+      <div class="header-left">
+        <div class="logo">
+          <span class="logo-host">ajay.engineer/</span>travel
+        </div>
         <div class="stats-bar">
           <div class="stat">
-            <div class="stat-num v" id="count-visited">0</div>
-            <div class="stat-label">Visited</div>
+            <div class="stat-num visited" id="count-visited">0</div>
+            <div class="stat-label">visited</div>
           </div>
           <div class="stat">
-            <div class="stat-num p" id="count-planned">0</div>
-            <div class="stat-label">Planned</div>
+            <div class="stat-num planned" id="count-planned">0</div>
+            <div class="stat-label">planned</div>
           </div>
           <div class="stat">
-            <div class="stat-num w" id="count-wishlist">0</div>
-            <div class="stat-label">Wishlist</div>
+            <div class="stat-num wishlist" id="count-wishlist">0</div>
+            <div class="stat-label">wishlist</div>
           </div>
         </div>
       </div>
       <div class="header-right">
-        <div class="legend">
-          <div class="legend-item">
-            <div class="legend-dot" style="background: var(--visited)"></div>
-            Visited
-          </div>
-          <div class="legend-item">
-            <div class="legend-dot" style="background: var(--planned)"></div>
-            Planned
-          </div>
-          <div class="legend-item">
-            <div class="legend-dot" style="background: var(--wishlist)"></div>
-            Wishlist
-          </div>
-        </div>
-        <button class="stats-toggle-btn" id="stats-toggle-btn">
+        <button id="stats-toggle-btn">
           <svg
             width="14"
             height="14"
@@ -68,9 +52,9 @@
           >
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
           </svg>
-          My Stats
+          stats
         </button>
-        <button class="list-toggle-btn" id="list-toggle-btn">
+        <button id="list-toggle-btn">
           <svg
             width="14"
             height="14"
@@ -86,9 +70,9 @@
             <circle cx="3" cy="12" r="1" fill="currentColor" />
             <circle cx="3" cy="18" r="1" fill="currentColor" />
           </svg>
-          My List
+          list
         </button>
-        <button class="export-btn" id="export-btn">
+        <button id="export-btn">
           <svg
             width="14"
             height="14"
@@ -101,13 +85,36 @@
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          Export PNG
+          <span>export png</span>
         </button>
       </div>
     </header>
 
     <div class="map-container">
-      <svg id="map-svg"></svg>
+      <svg id="map-svg">
+        <defs>
+          <pattern
+            id="wishlist-hatch"
+            width="3"
+            height="3"
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(45)"
+          >
+            <rect width="3" height="3" />
+            <line x1="0.75" y1="0" x2="0.75" y2="3" stroke-width="1.25" />
+          </pattern>
+          <pattern
+            id="wishlist-hatch-sm"
+            width="2"
+            height="2"
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(45)"
+          >
+            <rect width="2" height="2" />
+            <line x1="0.5" y1="0" x2="0.5" y2="2" stroke-width="0.85" />
+          </pattern>
+        </defs>
+      </svg>
 
       <!-- Stats: left panel on desktop, bottom sheet on mobile -->
       <aside class="panel stats" id="stats">
@@ -124,7 +131,7 @@
             >
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
             </svg>
-            My Travel Stats
+            travel stats
           </div>
 
           <div class="world-ring-wrap">
@@ -142,18 +149,13 @@
             <div class="ring-text-wrap">
               <div class="ring-pct" id="ring-pct">0<span>%</span></div>
               <div class="ring-label">of the world visited</div>
-              <div class="ring-sub" id="ring-sub">0 of 195 countries</div>
+              <div class="ring-sub" id="ring-sub">0 of 196 countries</div>
             </div>
           </div>
 
           <div class="continent-section">
-            <div class="section-label">By Continent</div>
+            <div class="section-label">by continent</div>
             <div id="continent-bars"></div>
-          </div>
-
-          <div class="badges-section">
-            <div class="section-label">Achievements</div>
-            <div class="badges-grid" id="badges-grid"></div>
           </div>
         </div>
       </aside>
@@ -168,7 +170,6 @@
           <div class="country-region" id="detail-region"></div>
           <div class="data-grid" id="detail-data"></div>
           <div id="detail-mydata"></div>
-          <div class="panel-divider"></div>
           <div class="wiki-section">
             <button class="wiki-toggle" id="wiki-toggle">
               <svg
@@ -183,7 +184,7 @@
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
-              Learn more about this country
+              learn more about this country
             </button>
             <div class="wiki-content" id="wiki-content"></div>
           </div>
@@ -196,7 +197,7 @@
           type="text"
           class="search-input"
           id="search"
-          placeholder="🔍  Search country..."
+          placeholder="🔍  search country…"
           autocomplete="off"
         />
         <div class="search-results" id="search-results"></div>
@@ -204,9 +205,7 @@
       <div class="zoom-controls">
         <button class="zoom-btn" id="zoom-in">+</button>
         <button class="zoom-btn" id="zoom-out">−</button>
-        <button class="zoom-btn" id="zoom-reset" style="font-size: 0.68rem">
-          ⌂
-        </button>
+        <button class="zoom-btn" id="zoom-reset">⌂</button>
       </div>
 
       <!-- Backdrop behind the detail sheet (mobile only) -->
@@ -217,22 +216,27 @@
       <div class="list-panel" id="list-panel">
         <div class="list-header">
           <div class="list-header-top">
-            <div class="list-title">🗺️ My Countries</div>
+            <div class="list-title">
+              <span class="emoji">🗺️</span> countries
+            </div>
             <button class="list-close-btn" id="list-close-btn">✕</button>
           </div>
           <div class="list-tabs">
             <button class="list-tab active" data-filter="visited">
-              ✅ Visited
+              <span class="emoji">✅</span> visited
             </button>
-            <button class="list-tab" data-filter="planned">📅 Planned</button>
-            <button class="list-tab" data-filter="wishlist">💛 Wishlist</button>
+            <button class="list-tab" data-filter="planned">
+              <span class="emoji">📅</span> planned
+            </button>
+            <button class="list-tab" data-filter="wishlist">
+              <span class="emoji">💛</span> wishlist
+            </button>
           </div>
           <input
             class="list-search"
             id="list-search"
-            placeholder="Filter countries…"
+            placeholder="filter countries…"
             autocomplete="off"
-            style="font-size: 16px"
           />
         </div>
         <div class="list-body" id="list-body"></div>
@@ -252,7 +256,7 @@
             <circle cx="11" cy="11" r="8" />
             <path d="M21 21l-4.35-4.35" />
           </svg>
-          Search
+          search
         </button>
         <button class="mobile-nav-btn" id="mob-stats-btn">
           <svg
@@ -265,7 +269,7 @@
           >
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
           </svg>
-          Stats
+          stats
         </button>
         <button class="mobile-nav-btn" id="mob-list-btn">
           <svg
@@ -283,7 +287,7 @@
             <circle cx="3" cy="12" r="1" fill="currentColor" />
             <circle cx="3" cy="18" r="1" fill="currentColor" />
           </svg>
-          List
+          list
         </button>
       </nav>
     </div>

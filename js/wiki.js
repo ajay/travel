@@ -27,7 +27,8 @@ async function fetchWiki(countryName) {
 
 function renderWikiContent(containerEl, data) {
   if (!data) {
-    containerEl.innerHTML = `<div class="wiki-excerpt" style="color:var(--text-muted);font-size:.78rem">No information available.</div>`;
+    containerEl.innerHTML =
+      '<div class="wiki-excerpt wiki-empty">no information available.</div>';
     return;
   }
   const excerpt =
@@ -38,7 +39,7 @@ function renderWikiContent(containerEl, data) {
     <div class="wiki-excerpt">${escapeHtml(excerpt)}</div>
     <a class="wiki-link" href="${escapeHtml(data.pageUrl)}" target="_blank" rel="noopener">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-      Read more on Wikipedia
+      read more on wikipedia
     </a>`;
 }
 
@@ -49,7 +50,7 @@ export function initWiki() {
   $("wiki-toggle").addEventListener("click", async () => {
     if (!box.classList.toggle("open")) return resetWiki();
     const gen = ++wikiGen;
-    box.innerHTML = '<div class="wiki-loading">Loading…</div>';
+    box.innerHTML = '<div class="wiki-note">loading…</div>';
     const data = await fetchWiki(state.lookup[state.selected]?.name || "");
     if (gen === wikiGen) renderWikiContent(box, data);
   });

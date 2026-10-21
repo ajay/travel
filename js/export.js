@@ -1,10 +1,11 @@
-import { $ } from "./util.js";
+import { $, cssVar } from "./util.js";
 
 export function initExport() {
   const btn = $("export-btn");
+  const label = btn.querySelector("span");
   btn.addEventListener("click", async () => {
     btn.classList.add("loading");
-    btn.textContent = "Generating…";
+    label.textContent = "generating…";
 
     try {
       if (!window.html2canvas) {
@@ -19,29 +20,38 @@ export function initExport() {
       }
       const mapEl = document.querySelector(".map-container");
       const canvas = await html2canvas(mapEl, {
-        backgroundColor: "#0a0f1e",
+        backgroundColor: cssVar("--bg"),
         scale: 2,
         useCORS: true,
         allowTaint: true,
         logging: false,
+        // html2canvas drops CSS filters and ::placeholder; leave controls out.
+        ignoreElements: (el) => el.matches(".search-wrap, .zoom-controls"),
       });
 
       const ctx = canvas.getContext("2d");
-      ctx.font = "bold 28px serif";
-      ctx.fillStyle = "rgba(232,201,122,0.8)";
-      ctx.fillText("Atlas", 24, canvas.height - 24);
+      // html2canvas leaves its scale and page offset on the context.
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      const y = canvas.height - 32;
+      const font = `24px ${cssVar("--mono")}`;
+      ctx.font = font;
+      ctx.fillStyle = cssVar("--accent");
+      ctx.fillText("ajay.engineer/", 32, y);
+      const x = 32 + ctx.measureText("ajay.engineer/").width;
+      ctx.font = `500 ${font}`;
+      ctx.fillStyle = cssVar("--text");
+      ctx.fillText("travel", x, y);
 
       const link = document.createElement("a");
-      link.download = "atlas-travel-map.png";
+      link.download = "ajay-engineer-travel.png";
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (e) {
       console.error("Export failed:", e);
-      alert("Export failed. Try again or use a screenshot tool.");
+      alert("export failed. try again or use a screenshot tool.");
     }
 
     btn.classList.remove("loading");
-    btn.innerHTML =
-      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export PNG';
+    label.textContent = "export png";
   });
 }

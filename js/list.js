@@ -41,19 +41,14 @@ function renderList() {
 
   if (!countries.length) {
     const labels = {
-      visited: "visited",
+      visited: "visited countries",
       planned: "planned trips",
       wishlist: "wishlist countries",
     };
-    body.innerHTML = `<div class="list-empty">No ${labels[listFilter]} in data.json yet.</div>`;
+    body.innerHTML = `<div class="list-empty">${listSearch ? "no matches." : `no ${labels[listFilter]} in data.json yet.`}</div>`;
     return;
   }
 
-  const statusColor = {
-    visited: "var(--visited)",
-    planned: "var(--planned)",
-    wishlist: "var(--wishlist)",
-  };
   body.innerHTML = countries
     .map(({ cca3, info, details }) => {
       const stars = "★".repeat(
@@ -64,12 +59,7 @@ function renderList() {
       );
       const cca2 = getFlagCca2(cca3);
       const flagHtml = cca2
-        ? flagImg(
-            cca2,
-            "w40",
-            "width:26px;height:auto;border-radius:2px",
-            info.flag || "",
-          )
+        ? flagImg(cca2, "w40", info.flag || "")
         : info.flag || "";
       return `<div class="list-item" data-cca3="${cca3}">
       <div class="list-item-flag">${flagHtml}</div>
@@ -78,7 +68,7 @@ function renderList() {
         ${sub ? `<div class="list-item-sub">${sub}</div>` : ""}
       </div>
       ${stars ? `<div class="list-item-stars">${stars}</div>` : ""}
-      <div class="list-item-badge" style="background:${statusColor[listFilter]}"></div>
+      <div class="list-item-badge ${listFilter}"></div>
     </div>`;
     })
     .join("");

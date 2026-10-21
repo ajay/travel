@@ -1,5 +1,4 @@
 import { state } from "./state.js";
-import { $ } from "./util.js";
 import { buildMap, refreshMap, initMap } from "./map.js";
 import { initDetail } from "./detail.js";
 import { initWiki } from "./wiki.js";
@@ -47,4 +46,3 @@ if (ignored.length) console.warn(`data.json: ignoring ${ignored.join(", ")}`);
 await buildMap();
 refreshMap();
 renderStats();
-$("loading").classList.add("hidden");

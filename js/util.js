@@ -4,6 +4,9 @@ export const $ = (id) => document.getElementById(id);
 
 export const isMobile = () => window.innerWidth <= 640;
 
+export const cssVar = (name) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
 export function escapeHtml(s) {
   return String(s).replace(
     /[&<>"']/g,
@@ -22,8 +25,8 @@ export function getFlagCca2(cca3) {
   return state.cca3ToCca2[cca3] || null;
 }
 
-export function flagImg(cca2, size, style, fallback) {
-  return `<img src="https://flagcdn.com/${size}/${cca2}.png" style="${style}" onerror="this.outerHTML='${fallback}'" />`;
+export function flagImg(cca2, size, fallback) {
+  return `<img src="https://flagcdn.com/${size}/${cca2}.png" onerror="this.outerHTML='${fallback}'" />`;
 }
 
 export function swipeToClose(el, close) {

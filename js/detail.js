@@ -4,42 +4,31 @@ import { refreshMap } from "./map.js";
 import { closeStats } from "./stats.js";
 import { resetWiki } from "./wiki.js";
 
-const STATUS_LABEL = {
-  visited: "Visited",
-  planned: "Planned",
-  wishlist: "Wishlist",
-};
+const cell = (label, value) =>
+  `<div class="data-cell"><div class="data-cell-label">${label}</div><div class="data-cell-value">${value}</div></div>`;
 
 export function renderMyData(cca3) {
   const status = state.statuses[cca3];
   const d = state.details[cca3];
   if (!status && !d) return "";
-  const parts = [];
-  parts.push('<div class="panel-divider"></div>');
-  parts.push('<div class="panel-section-label">Your travels</div>');
-  if (status) {
+  const parts = ['<div class="panel-section-label">travels</div>'];
+  if (status)
     parts.push(
-      `<div style="margin-bottom:10px"><span class="my-status-pill ${status}">${STATUS_LABEL[status] || status}</span></div>`,
+      cell("status", `<span class="my-status-pill ${status}">${status}</span>`),
     );
-  }
   const r = Math.max(0, Math.min(5, parseInt(d?.rating) || 0));
-  if (r) {
-    const stars =
-      "★".repeat(r) + `<span class="dim">${"★".repeat(5 - r)}</span>`;
+  if (r)
     parts.push(
-      `<div style="margin-bottom:10px"><div class="panel-section-label">Rating</div><div class="my-rating">${stars}</div></div>`,
+      cell(
+        "rating",
+        `<span class="my-rating">${"★".repeat(r)}<span class="dim">${"★".repeat(5 - r)}</span></span>`,
+      ),
     );
-  }
-  if (d?.year) {
+  if (d?.year) parts.push(cell("year visited", escapeHtml(String(d.year))));
+  if (d?.notes)
     parts.push(
-      `<div style="margin-bottom:10px"><div class="panel-section-label">Year visited</div><div class="data-cell-value">${escapeHtml(String(d.year))}</div></div>`,
+      `<div class="my-notes-wrap"><div class="data-cell-label">notes</div><div class="my-notes">${escapeHtml(d.notes)}</div></div>`,
     );
-  }
-  if (d?.notes) {
-    parts.push(
-      `<div><div class="panel-section-label">Notes</div><div class="my-notes">${escapeHtml(d.notes)}</div></div>`,
-    );
-  }
   return parts.join("");
 }
 
@@ -50,26 +39,22 @@ export function openDetail(cca3) {
   closeStats();
   const cca2 = getFlagCca2(cca3);
   const emoji = info.flag || "🌐";
-  $("detail-flag").innerHTML = cca2
-    ? flagImg(
-        cca2,
-        "w80",
-        "width:56px;height:auto;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.3)",
-        emoji,
-      )
-    : emoji;
+  $("detail-flag").innerHTML = cca2 ? flagImg(cca2, "w80", emoji) : emoji;
   $("detail-name").textContent = info.name;
   $("detail-region").textContent = [info.subregion, info.region]
     .filter(Boolean)
     .join(" · ");
-  $("detail-data").innerHTML = `
-    <div class="data-cell"><div class="data-cell-label">Capital</div><div class="data-cell-value">${info.capital || "—"}</div></div>
-    <div class="data-cell"><div class="data-cell-label">Population</div><div class="data-cell-value">${info.population?.toLocaleString() || "—"}</div></div>
-    <div class="data-cell"><div class="data-cell-label">Area</div><div class="data-cell-value">${info.area ? info.area.toLocaleString() + " km²" : "—"}</div></div>
-    <div class="data-cell"><div class="data-cell-label">Region</div><div class="data-cell-value">${info.region || "—"}</div></div>
-    <div class="data-cell full"><div class="data-cell-label">Languages</div><div class="data-cell-value">${info.languages || "—"}</div></div>
-    <div class="data-cell full"><div class="data-cell-label">Currency</div><div class="data-cell-value">${info.currency || "—"}</div></div>
-    <div class="data-cell full"><div class="data-cell-label">Timezone</div><div class="data-cell-value">${info.timezone || "—"}</div></div>`;
+  $("detail-data").innerHTML = [
+    ["capital", info.capital || "—"],
+    ["population", info.population?.toLocaleString() || "—"],
+    ["area", info.area ? info.area.toLocaleString() + " km²" : "—"],
+    ["region", `<span class="region-value">${info.region || "—"}</span>`],
+    ["languages", info.languages || "—"],
+    ["currency", info.currency || "—"],
+    ["timezone", info.timezone || "—"],
+  ]
+    .map(([label, value]) => cell(label, value))
+    .join("");
   $("detail-mydata").innerHTML = renderMyData(cca3);
   refreshMap();
   resetWiki();
