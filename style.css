@@ -1050,35 +1050,8 @@ html.pair #map-svg circle.country.wishlist:not(.selected):hover {
 }
 
 /* WIKIPEDIA */
-.wiki-section {
-  margin-top: 24px;
-}
-.wiki-toggle {
-  width: 100%;
-  height: 32px;
-  padding: 0 12px;
-  background: none;
-  border: 1px solid var(--line-strong);
-  color: var(--text-muted);
-  font-size: 11px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition:
-    color 0.15s,
-    border-color 0.15s;
-}
-.wiki-toggle:hover {
-  border-color: var(--text-muted);
-  color: var(--text);
-}
 .wiki-content {
-  margin-top: 18px;
-  display: none;
-}
-.wiki-content.open {
-  display: block;
+  margin-top: 24px;
 }
 .wiki-excerpt {
   color: var(--text-muted);
@@ -1222,8 +1195,7 @@ html.pair #map-svg circle.country.wishlist:not(.selected):hover {
   }
   .search-input,
   .list-search,
-  .list-tab,
-  .wiki-toggle {
+  .list-tab {
     height: 40px;
   }
 

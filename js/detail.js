@@ -9,7 +9,7 @@ import {
 } from "./util.js";
 import { refreshMap } from "./map.js";
 import { closeStats } from "./stats.js";
-import { resetWiki } from "./wiki.js";
+import { loadWiki } from "./wiki.js";
 import { view, shown, ownStep } from "./travellers.js";
 
 const cell = (label, value, cls = "") =>
@@ -94,7 +94,7 @@ export function openDetail(cca3) {
     .join("");
   $("detail-mydata").innerHTML = renderMyData(cca3);
   refreshMap();
-  resetWiki();
+  loadWiki(info.name);
   $("detail").classList.add("open");
   $("sheet-overlay").classList.add("show");
 }

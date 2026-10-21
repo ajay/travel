@@ -1,4 +1,3 @@
-import { state } from "./state.js";
 import { $, escapeHtml } from "./util.js";
 
 const wikiCache = {};
@@ -45,20 +44,10 @@ function renderWikiContent(containerEl, data) {
 
 let wikiGen = 0;
 
-export function initWiki() {
+export async function loadWiki(countryName) {
+  const gen = ++wikiGen;
   const box = $("wiki-content");
-  $("wiki-toggle").addEventListener("click", async () => {
-    if (!box.classList.toggle("open")) return resetWiki();
-    const gen = ++wikiGen;
-    box.innerHTML = '<div class="wiki-note">loading…</div>';
-    const data = await fetchWiki(state.lookup[state.selected]?.name || "");
-    if (gen === wikiGen) renderWikiContent(box, data);
-  });
-}
-
-export function resetWiki() {
-  wikiGen++;
-  const box = $("wiki-content");
-  box.classList.remove("open");
-  box.innerHTML = "";
+  box.innerHTML = '<div class="wiki-note">loading…</div>';
+  const data = await fetchWiki(countryName);
+  if (gen === wikiGen) renderWikiContent(box, data);
 }

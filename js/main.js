@@ -1,7 +1,6 @@
 import { state } from "./state.js";
 import { buildMap, refreshMap, refreshDots, initMap } from "./map.js";
 import { initDetail, refreshDetail } from "./detail.js";
-import { initWiki } from "./wiki.js";
 import { initStats, renderStats } from "./stats.js";
 import { initList, renderList } from "./list.js";
 import { initSearch } from "./search.js";
@@ -10,7 +9,6 @@ import { load, initTravellers } from "./travellers.js";
 
 initMap();
 initDetail();
-initWiki();
 initStats();
 initList();
 initSearch();
